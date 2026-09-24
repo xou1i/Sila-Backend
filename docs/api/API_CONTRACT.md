@@ -2,13 +2,13 @@
 
 Machine-readable schema: [`openapi.json`](openapi.json) (regenerate with `python -m app.scripts.export_openapi`).
 Generate TypeScript types from it, e.g. `npx openapi-typescript docs/api/openapi.json -o src/api/schema.d.ts`.
-Interactive docs: `http://localhost:8000/docs` while the API runs.
+Interactive docs: `http://localhost:8010/docs` while the API runs.
 
 ## 1. Conventions
 
 | Topic | Rule |
 |---|---|
-| Base URL | `http://localhost:8000` (dev). All paths start with `/api`. |
+| Base URL | `http://localhost:8010` (dev). All paths start with `/api`. |
 | JSON | `snake_case` keys. UUIDs are strings. |
 | Dates | ISO-8601 **UTC**, e.g. `"2026-09-24T08:37:53.701952Z"`. |
 | Money & weights | **Decimal strings**, never numbers: `"157060.58"`, `"84.250"`. Keep them as strings; parse only for display (for arithmetic, use a decimal library such as `decimal.js`, not `Number`). Requests accept strings or numbers; send strings. Grams have up to 3 decimals (always echoed with 3), IQD amounts 2, `commission_rate` 4 (`"0.0150"` = 1.5%). |

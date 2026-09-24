@@ -9,10 +9,10 @@ FastAPI backend for Sila, a gold marketplace for the Iraqi market. It has live g
 ## Run with Docker (one command)
 
 ```bash
-docker compose up --build            # PostgreSQL + API on http://localhost:8000 (migrations auto-applied)
+docker compose up --build            # PostgreSQL + API on http://localhost:8010 (migrations auto-applied)
 docker compose exec api python -m app.scripts.seed    # optional demo data
 ```
-Port 8000 busy? Use `API_PORT=8010 docker compose up --build`. PostgreSQL is exposed on host port **5433**.
+Port 8010 busy? Use e.g. `API_PORT=8080 docker compose up --build`. PostgreSQL is exposed on host port **5433**.
 Compose ships dev-only secrets so it works on a fresh clone. For anything shared, put real secrets in `.env`.
 
 ## Run locally without Docker (needs PostgreSQL ≥ 14)
@@ -21,9 +21,9 @@ Inside a virtualenv (`python -m venv .venv`, then activate it):
 ```bash
 pip install -r requirements-dev.txt
 cp .env.example .env                       # set DATABASE_URL to your PostgreSQL + real secrets
-alembic upgrade head && uvicorn app.main:app --reload
+alembic upgrade head && uvicorn app.main:app --reload --port 8010
 ```
-Open `http://localhost:8000/docs`. No local PostgreSQL? `docker compose up -d db` starts one on port 5433, which already matches `.env.example`.
+Open `http://localhost:8010/docs`. No local PostgreSQL? `docker compose up -d db` starts one on port 5433, which already matches `.env.example`.
 
 Seed demo data: `python -m app.scripts.seed` (refuses to run on a non-empty DB; `--reset` wipes and re-seeds).
 

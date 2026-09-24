@@ -61,7 +61,7 @@ Matching: for each active listing it computes the maximum affordable grams (the 
 
 **D-25 · New dependencies** (the prompt requires each to be justified). The old repo declared none, so every package is new: `psycopg[binary]` (PostgreSQL driver), `alembic` (migrations, mandated), `pydantic-settings` (config, mandated), `email-validator` (needed by `EmailStr`), `bcrypt` (hashing; `passlib` avoided), `PyJWT` (JWT), `APScheduler` 3.x (jobs, mandated). `anthropic` (official Claude SDK for the optional AI wording layer; the Claude API guidance prefers the SDK over raw HTTP in Python projects. It is used only when `AI_API_KEY` is set). Dev only: `pytest`, `ruff`, and `httpx2`, which Starlette 1.x's test client and our `AsyncClient` tests require. The market-price providers are called with the standard library (`urllib`, parsing numbers straight to `Decimal`).
 
-**D-26 · Host ports.** On the audit machine, ports 5432 and 8000 were already taken by other software. Compose therefore publishes PostgreSQL on **5433**, and the API on `${API_PORT:-8000}`.
+**D-26 · Host ports.** On the audit machine, ports 5432 and 8000 were already taken by other software. Compose therefore publishes PostgreSQL on **5433**, and the API on **8010** (container and host; override the host side with `API_PORT`).
 
 **D-27 · Preview risk insight.** `POST /api/transactions/preview` embeds the instant rule-based insight (no network call), so preview stays fast. `POST /api/ai/risk-analysis` returns the same analysis, optionally worded by Claude. The frontend may call both in parallel.
 

@@ -16,6 +16,6 @@ COPY app ./app
 RUN useradd --create-home --uid 10001 sila
 USER sila
 
-EXPOSE 8000
+EXPOSE 8010
 # Migrations are applied on every start (idempotent), then the API is served.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8010 --proxy-headers"]
