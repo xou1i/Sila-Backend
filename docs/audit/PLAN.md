@@ -40,6 +40,6 @@ Requirement IDs refer to `SPEC_MATRIX.md`; finding IDs (B*, S*) to `AUDIT_REPORT
 | `pytest` (fresh schema via migrations each session, PostgreSQL 16) | 104 passed, warnings treated as errors |
 | Concurrency tests re-run 3× (8 buyers × 30 g on 100 g; same-key duplicates; same-investor parallel first purchases) | stable: exactly 3 succeed, 10.000 g left, never oversold |
 | `ruff check .` / `ruff format --check .` | clean |
-| `grep -rnE "float|Float|float\(" app/` | only timeout settings and rate-limiter timing; no money/weight path |
+| `grep -rnE "\bfloat\b\|Float\b\|float\(" app/` | only timeout settings and rate-limiter timing; no money/weight path |
 | `docker compose up --build` | migrations auto-applied, live price fetched, jobs scheduled, no warnings in logs |
 | Seed in container + manual end-to-end run (prices, browse, match, preview, confirm with Idempotency-Key, ownership verify, insights, history 1D–1Y, KYC interrupt, expired-premium job) | all as specified |
