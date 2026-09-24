@@ -1,0 +1,23 @@
+[project]
+name = "sila-backend"
+version = "1.0.0"
+description = "Sila (صِلة) gold marketplace API"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["CLAUDE"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "RUF"]
+ignore = ["B008", "RUF001", "RUF002", "RUF003", "S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311"]
+"app/scripts/seed.py" = ["S311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error::DeprecationWarning:app.*"]
