@@ -1,0 +1,41 @@
+name: sila
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sila
+      POSTGRES_PASSWORD: sila
+      POSTGRES_DB: sila
+    ports:
+      - "5433:5432"
+    volumes:
+      - sila_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sila -d sila"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://sila:sila@db:5432/sila
+      # Values come from .env when present (compose interpolation); the dev-only
+      # fallbacks exist so `docker compose up` works on a fresh clone.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-please-change-0000000000}
+      OWNERSHIP_SIGNING_SECRET: ${OWNERSHIP_SIGNING_SECRET:-dev-only-ownership-secret-change-00000000}
+      QUOTE_SIGNING_SECRET: ${QUOTE_SIGNING_SECRET:-dev-only-quote-secret-please-change-000000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    ports:
+      - "8000:8000"
+
+volumes:
+  sila_pgdata:
