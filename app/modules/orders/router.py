@@ -31,7 +31,7 @@ def preview(
     response_model=ConfirmOut,
     status_code=status.HTTP_201_CREATED,
     responses={
-        200: {"description": "Idempotent replay: the original transaction"},
+        200: {"model": ConfirmOut, "description": "Idempotent replay: the original transaction"},
         **error_responses(401, 403, 404, 409, 422),
     },
     summary="Execute the purchase atomically (KYC required; row-locked)",

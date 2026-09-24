@@ -32,7 +32,10 @@ IdempotencyKey = Header(
     "",
     response_model=ListingOut,
     status_code=status.HTTP_201_CREATED,
-    responses={200: {"description": "Idempotent replay"}, **error_responses(401, 403, 422, 503)},
+    responses={
+        200: {"model": ListingOut, "description": "Idempotent replay"},
+        **error_responses(401, 403, 422, 503),
+    },
     summary="Create a listing (seller, KYC required; price computed server-side)",
 )
 def create_listing(
