@@ -101,3 +101,8 @@ async def test_public_config(client) -> None:
     body = (await client.get("/api/config")).json()
     assert body["promotion_fee_iqd"] and body["subscription_duration_days"] == 30
     assert [t["rate"] for t in body["commission_tiers"]] == ["0.0150", "0.0100", "0.0050"]
+    assert [t["label_ar"] for t in body["commission_tiers"]] == [
+        "أقل من 50 غ",
+        "من 50 إلى 200 غ",
+        "أكثر من 200 غ",
+    ]

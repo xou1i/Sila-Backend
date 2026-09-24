@@ -155,7 +155,7 @@ A new investor gets `"0.000"` with `message: "ابدأ أول استثمار"`. 
 
 ### System (🌐)
 - `GET /api/health` → `{status: ok|degraded, database, price_cache_age_seconds, price_source, price_is_stale, time}`
-- `GET /api/config` → fees, subscription price, commission tiers, `quote_ttl_seconds`. Display these values; never hard-code them.
+- `GET /api/config` → fees, subscription price, commission tiers, `quote_ttl_seconds`. Display these values; never hard-code them. Each tier has `label` (English) and `label_ar` (Arabic display text, e.g. `أقل من 50 غ`).
 
 ## 5. Checkout sequence (the most important flow)
 

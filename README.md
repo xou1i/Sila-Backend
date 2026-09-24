@@ -60,6 +60,8 @@ Every setting is in [`.env.example`](.env.example). Key ones:
 | `AI_API_KEY` | Optional. Empty = deterministic rule-based AI. Set = Claude (`AI_MODEL`, default `claude-opus-5`) rewrites the Arabic explanation text only. |
 | `MOCK_PAYMENT_FAIL` | `true` to demo payment-failure paths |
 
+**Deploying the frontend:** browsers only reach the API from origins listed in `CORS_ORIGINS`. When the frontend gets its production domain, add it there (for example `CORS_ORIGINS=https://<frontend-domain>`, several origins comma-separated) and restart the API. No code change is needed.
+
 ## Architecture
 
 A modular monolith: one FastAPI app, and each business capability has its own `router.py` (HTTP) and `service.py` (logic):

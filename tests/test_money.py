@@ -4,6 +4,7 @@ import pytest
 
 from app.core.money import (
     compute_breakdown,
+    format_iqd,
     gold_24k_iqd_per_gram,
     karat_price,
     max_affordable_grams,
@@ -20,6 +21,14 @@ D = Decimal
 )
 def test_karat_conversion(karat: int, expected: str) -> None:
     assert karat_price(D("145000.00"), karat) == D(expected)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("999858.24", "999,858"), ("1500000.00", "1,500,000"), ("0.50", "1"), ("950.49", "950")],
+)
+def test_format_iqd(value: str, expected: str) -> None:
+    assert format_iqd(D(value)) == expected
 
 
 @pytest.mark.parametrize(

@@ -18,11 +18,36 @@ RATE_SMALL = Decimal("0.0150")
 RATE_MEDIUM = Decimal("0.0100")
 RATE_LARGE = Decimal("0.0050")
 
+# `label` stays as is for existing clients; `label_ar` is the display text for the Arabic UI
+# (no dashes, which the frontend UI Kit bans in copy).
 COMMISSION_TIERS = (
-    {"label": "< 50 g", "min_grams": None, "max_grams": "49.999", "rate": RATE_SMALL},
-    {"label": "50 – 200 g", "min_grams": "50.000", "max_grams": "200.000", "rate": RATE_MEDIUM},
-    {"label": "> 200 g", "min_grams": "200.001", "max_grams": None, "rate": RATE_LARGE},
+    {
+        "label": "< 50 g",
+        "label_ar": "أقل من 50 غ",
+        "min_grams": None,
+        "max_grams": "49.999",
+        "rate": RATE_SMALL,
+    },
+    {
+        "label": "50 – 200 g",
+        "label_ar": "من 50 إلى 200 غ",
+        "min_grams": "50.000",
+        "max_grams": "200.000",
+        "rate": RATE_MEDIUM,
+    },
+    {
+        "label": "> 200 g",
+        "label_ar": "أكثر من 200 غ",
+        "min_grams": "200.001",
+        "max_grams": None,
+        "rate": RATE_LARGE,
+    },
 )
+
+
+def format_iqd(value: Decimal) -> str:
+    """IQD for human-readable text: whole dinars with thousands separators (999,858)."""
+    return f"{value.quantize(Decimal('1'), rounding=ROUND_HALF_UP):,}"
 
 
 def round_money(value: Decimal) -> Decimal:

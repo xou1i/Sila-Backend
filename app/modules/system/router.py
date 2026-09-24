@@ -27,6 +27,7 @@ class HealthOut(BaseModel):
 
 class CommissionTier(BaseModel):
     label: str
+    label_ar: str
     min_grams: Decimal | None
     max_grams: Decimal | None
     rate: Decimal
