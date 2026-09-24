@@ -1,0 +1,3719 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sila (صِلة) API",
+    "description": "Gold marketplace for the Iraqi market. All errors use `{error_code, message, status}`. Money and weights are decimal strings.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "tags": [
+          "Identity & Security"
+        ],
+        "summary": "Create an investor or seller account",
+        "operationId": "signup_api_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Identity & Security"
+        ],
+        "summary": "Log in; returns access + refresh tokens",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Identity & Security"
+        ],
+        "summary": "Exchange a refresh token for a new token pair",
+        "operationId": "refresh_api_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "tags": [
+          "Identity & Security"
+        ],
+        "summary": "Current user profile",
+        "operationId": "me_api_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/kyc/verify": {
+      "post": {
+        "tags": [
+          "Identity & Security"
+        ],
+        "summary": "Mock KYC (توقيعك) for investors",
+        "operationId": "kyc_verify_investor_api_kyc_verify_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/kyc/seller": {
+      "post": {
+        "tags": [
+          "Identity & Security"
+        ],
+        "summary": "Mock KYC (توقيعك) for sellers",
+        "operationId": "kyc_verify_seller_api_kyc_seller_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/market/prices": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Latest gold prices (all karats) + USD/IQD, served from the internal cache",
+        "operationId": "prices_api_market_prices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketPricesOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/market/prices/history": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Downsampled price history for charts",
+        "operationId": "price_history_api_market_prices_history_get",
+        "parameters": [
+          {
+            "name": "karat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 24,
+              "title": "Karat"
+            }
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "1D",
+                "1W",
+                "1M",
+                "3M",
+                "1Y"
+              ],
+              "type": "string",
+              "default": "1D",
+              "title": "Range"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceHistoryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings": {
+      "post": {
+        "tags": [
+          "Listing & Asset"
+        ],
+        "summary": "Create a listing (seller, KYC required; price computed server-side)",
+        "operationId": "create_listing_api_listings_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional. Retrying with the same key returns the original result.",
+              "title": "Idempotency-Key"
+            },
+            "description": "Optional. Retrying with the same key returns the original result."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingCreateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingOut"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Idempotent replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Listing & Asset"
+        ],
+        "summary": "Browse listings (public). seller_id=me lists the caller's own listings.",
+        "operationId": "browse_listings_api_listings_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "karat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Karat"
+            }
+          },
+          {
+            "name": "min_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Min base_price_per_gram",
+              "title": "Min Price"
+            },
+            "description": "Min base_price_per_gram"
+          },
+          {
+            "name": "max_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max base_price_per_gram",
+              "title": "Max Price"
+            },
+            "description": "Max base_price_per_gram"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "promoted_first",
+                "newest",
+                "price_asc",
+                "price_desc"
+              ],
+              "type": "string",
+              "default": "promoted_first",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "seller_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "\"me\" (seller auth) or a seller UUID",
+              "title": "Seller Id"
+            },
+            "description": "\"me\" (seller auth) or a seller UUID"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ListingStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only with seller_id=me",
+              "title": "Status"
+            },
+            "description": "Only with seller_id=me"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ListingOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings/{listing_id}": {
+      "get": {
+        "tags": [
+          "Listing & Asset"
+        ],
+        "summary": "Listing detail (public)",
+        "operationId": "get_listing_api_listings__listing_id__get",
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Listing & Asset"
+        ],
+        "summary": "Suspend / re-activate a listing (owner only). There is no delete.",
+        "operationId": "update_listing_api_listings__listing_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingStatusIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings/{listing_id}/promote": {
+      "post": {
+        "tags": [
+          "Listing & Asset"
+        ],
+        "summary": "Pay the fixed promotion fee (internal mock payment) and promote the listing",
+        "operationId": "promote_listing_api_listings__listing_id__promote_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoteOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/match": {
+      "post": {
+        "tags": [
+          "AI Engine"
+        ],
+        "summary": "Smart matching (free): budget → ranked listings; risk profile read from account",
+        "operationId": "smart_match_api_ai_match_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ai/risk-analysis": {
+      "post": {
+        "tags": [
+          "AI Engine"
+        ],
+        "summary": "Pre-checkout risk insight (never blocks checkout)",
+        "operationId": "risk_analysis_api_ai_risk_analysis_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskAnalysisIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskAnalysisOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ai/insights": {
+      "get": {
+        "tags": [
+          "AI Engine"
+        ],
+        "summary": "Premium insights: alerts, market trend, portfolio performance",
+        "operationId": "premium_insights_api_ai_insights_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/transactions/preview": {
+      "post": {
+        "tags": [
+          "Order & Transaction"
+        ],
+        "summary": "Price breakdown + signed quote + AI risk insight. Read-only (no reservation).",
+        "operationId": "preview_api_transactions_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/transactions/confirm": {
+      "post": {
+        "tags": [
+          "Order & Transaction"
+        ],
+        "summary": "Execute the purchase atomically (KYC required; row-locked)",
+        "operationId": "confirm_api_transactions_confirm_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Recommended. A repeated key returns the original transaction.",
+              "title": "Idempotency-Key"
+            },
+            "description": "Recommended. A repeated key returns the original transaction."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmOut"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Idempotent replay: the original transaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions": {
+      "get": {
+        "tags": [
+          "Order & Transaction"
+        ],
+        "summary": "My transactions (investor: purchases; seller: sales on my listings)",
+        "operationId": "list_transactions_api_transactions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_TransactionOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/{transaction_id}": {
+      "get": {
+        "tags": [
+          "Order & Transaction"
+        ],
+        "summary": "One transaction (parties only)",
+        "operationId": "get_transaction_api_transactions__transaction_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "transaction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Transaction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription/subscribe": {
+      "post": {
+        "tags": [
+          "Subscription & Mock Payment"
+        ],
+        "summary": "Buy / renew Premium for 30 days (internal mock payment; no KYC needed)",
+        "operationId": "subscribe_api_subscription_subscribe_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscribeOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/subscription/status": {
+      "get": {
+        "tags": [
+          "Subscription & Mock Payment"
+        ],
+        "summary": "Current subscription tier and expiry",
+        "operationId": "subscription_status_api_subscription_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionStatusOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ownership/me": {
+      "get": {
+        "tags": [
+          "Ownership"
+        ],
+        "summary": "Verified gold balance (signature checked before returning)",
+        "operationId": "my_ownership_api_ownership_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "DB + price cache health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Server-side business values the UI displays (fees, tiers). Read-only.",
+        "operationId": "public_config_api_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicConfigOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CommissionTier": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "min_grams": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Grams"
+          },
+          "max_grams": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Grams"
+          },
+          "rate": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "min_grams",
+          "max_grams",
+          "rate"
+        ],
+        "title": "CommissionTier"
+      },
+      "ConfirmIn": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "purchased_weight_grams": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,7}|(?=[\\d.]{1,11}0*$)\\d{0,7}\\.\\d{0,3}0*$)"
+              }
+            ],
+            "title": "Purchased Weight Grams",
+            "examples": [
+              "84.250"
+            ]
+          },
+          "quote_token": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 10,
+            "title": "Quote Token",
+            "description": "From the preview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "purchased_weight_grams",
+          "quote_token"
+        ],
+        "title": "ConfirmIn"
+      },
+      "ConfirmOut": {
+        "properties": {
+          "transaction": {
+            "$ref": "#/components/schemas/TransactionOut"
+          },
+          "ownership": {
+            "$ref": "#/components/schemas/OwnershipSummary"
+          },
+          "listing_status": {
+            "type": "string",
+            "title": "Listing Status"
+          },
+          "listing_available_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Listing Available Weight Grams"
+          },
+          "idempotent_replay": {
+            "type": "boolean",
+            "title": "Idempotent Replay",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction",
+          "ownership",
+          "listing_status",
+          "listing_available_weight_grams"
+        ],
+        "title": "ConfirmOut"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "title": "Error Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "status": {
+            "type": "integer",
+            "title": "Status"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FieldError"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error_code",
+          "message",
+          "status"
+        ],
+        "title": "ErrorResponse",
+        "description": "Body of every non-2xx response."
+      },
+      "FieldError": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "FieldError"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Database"
+          },
+          "price_cache_age_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Cache Age Seconds"
+          },
+          "price_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Source"
+          },
+          "price_is_stale": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Is Stale"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "database",
+          "price_cache_age_seconds",
+          "price_source",
+          "price_is_stale",
+          "time"
+        ],
+        "title": "HealthOut"
+      },
+      "InsightsOut": {
+        "properties": {
+          "engine": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "llm"
+            ],
+            "title": "Engine"
+          },
+          "alerts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Alerts"
+          },
+          "market": {
+            "$ref": "#/components/schemas/MarketTrend"
+          },
+          "portfolio": {
+            "$ref": "#/components/schemas/PortfolioPerformance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "engine",
+          "alerts",
+          "market",
+          "portfolio"
+        ],
+        "title": "InsightsOut"
+      },
+      "KaratHolding": {
+        "properties": {
+          "karat": {
+            "type": "integer",
+            "title": "Karat"
+          },
+          "grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Grams"
+          },
+          "current_value_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Current Value Iqd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "karat",
+          "grams",
+          "current_value_iqd"
+        ],
+        "title": "KaratHolding"
+      },
+      "KaratPrice": {
+        "properties": {
+          "karat": {
+            "type": "integer",
+            "title": "Karat"
+          },
+          "price_per_gram_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price Per Gram Iqd"
+          },
+          "price_per_gram_usd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price Per Gram Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "karat",
+          "price_per_gram_iqd",
+          "price_per_gram_usd"
+        ],
+        "title": "KaratPrice"
+      },
+      "KycOut": {
+        "properties": {
+          "kyc_verified": {
+            "type": "boolean",
+            "title": "Kyc Verified"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kyc_verified",
+          "message",
+          "user"
+        ],
+        "title": "KycOut"
+      },
+      "ListingCreateIn": {
+        "properties": {
+          "total_weight_grams": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,7}|(?=[\\d.]{1,11}0*$)\\d{0,7}\\.\\d{0,3}0*$)"
+              }
+            ],
+            "title": "Total Weight Grams",
+            "examples": [
+              "84.250"
+            ]
+          },
+          "karat": {
+            "type": "integer",
+            "enum": [
+              18,
+              21,
+              22,
+              24
+            ],
+            "title": "Karat",
+            "examples": [
+              21
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_weight_grams",
+          "karat"
+        ],
+        "title": "ListingCreateIn",
+        "description": "The price is computed server-side from the live 24K price; any price field is ignored."
+      },
+      "ListingOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "seller_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Seller Id"
+          },
+          "seller_name": {
+            "type": "string",
+            "title": "Seller Name"
+          },
+          "seller_kyc_verified": {
+            "type": "boolean",
+            "title": "Seller Kyc Verified"
+          },
+          "karat": {
+            "type": "integer",
+            "title": "Karat"
+          },
+          "total_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Weight Grams"
+          },
+          "available_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Available Weight Grams"
+          },
+          "base_price_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Base Price Per Gram",
+            "description": "Reference price fixed at creation"
+          },
+          "current_price_per_gram": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Price Per Gram",
+            "description": "Live price for this karat now; the purchase uses this (see preview)"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus"
+          },
+          "is_promoted": {
+            "type": "boolean",
+            "title": "Is Promoted",
+            "description": "Effective: is_promoted AND promotion_expiry_date > now"
+          },
+          "promotion_expiry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promotion Expiry Date"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "seller_id",
+          "seller_name",
+          "seller_kyc_verified",
+          "karat",
+          "total_weight_grams",
+          "available_weight_grams",
+          "base_price_per_gram",
+          "current_price_per_gram",
+          "status",
+          "is_promoted",
+          "promotion_expiry_date",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ListingOut"
+      },
+      "ListingStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "sold_out",
+          "suspended"
+        ],
+        "title": "ListingStatus"
+      },
+      "ListingStatusIn": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Status",
+            "description": "Owner can suspend or re-activate. sold_out is set by the system only."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ListingStatusIn"
+      },
+      "LoginIn": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "examples": [
+              "zainab@example.iq"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "examples": [
+              "Sila@2026"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginIn"
+      },
+      "LoginOut": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Access token lifetime in seconds"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "LoginOut"
+      },
+      "MarketPricesOut": {
+        "properties": {
+          "base_currency": {
+            "type": "string",
+            "title": "Base Currency",
+            "default": "IQD"
+          },
+          "karats": {
+            "items": {
+              "$ref": "#/components/schemas/KaratPrice"
+            },
+            "type": "array",
+            "title": "Karats",
+            "description": "24, 22, 21, 18 (price = 24K × karat / 24)"
+          },
+          "usd_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Usd Iqd",
+            "description": "1 USD in IQD"
+          },
+          "xau_usd_per_ounce": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Xau Usd Per Ounce",
+            "description": "Global gold reference, USD per troy ounce"
+          },
+          "change_24h_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 24H Pct",
+            "description": "24K change vs ~24h ago, percent (2 dp)"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "When this price was fetched from the provider"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "live | fallback | seed"
+          },
+          "is_stale": {
+            "type": "boolean",
+            "title": "Is Stale",
+            "description": "True when the last successful refresh is too old"
+          }
+        },
+        "type": "object",
+        "required": [
+          "karats",
+          "usd_iqd",
+          "xau_usd_per_ounce",
+          "change_24h_pct",
+          "updated_at",
+          "source",
+          "is_stale"
+        ],
+        "title": "MarketPricesOut"
+      },
+      "MarketTrend": {
+        "properties": {
+          "price_24k_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price 24K Per Gram"
+          },
+          "change_24h_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 24H Pct"
+          },
+          "change_7d_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 7D Pct"
+          },
+          "change_30d_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 30D Pct"
+          },
+          "high_7d": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High 7D"
+          },
+          "low_7d": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low 7D"
+          },
+          "trend": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "flat"
+            ],
+            "title": "Trend"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "price_24k_per_gram",
+          "change_24h_pct",
+          "change_7d_pct",
+          "change_30d_pct",
+          "high_7d",
+          "low_7d",
+          "trend",
+          "summary"
+        ],
+        "title": "MarketTrend"
+      },
+      "MatchIn": {
+        "properties": {
+          "budget_iqd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Budget Iqd",
+            "examples": [
+              "1500000"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "budget_iqd"
+        ],
+        "title": "MatchIn"
+      },
+      "MatchOut": {
+        "properties": {
+          "budget_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Budget Iqd"
+          },
+          "risk_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Read from the account, not the request"
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "llm"
+            ],
+            "title": "Engine"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MatchResult"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "budget_iqd",
+          "risk_profile",
+          "engine",
+          "message",
+          "results"
+        ],
+        "title": "MatchOut"
+      },
+      "MatchResult": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "listing": {
+            "$ref": "#/components/schemas/ListingOut"
+          },
+          "suggested_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Suggested Weight Grams"
+          },
+          "execution_price_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Execution Price Per Gram"
+          },
+          "estimated_total_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Total Iqd",
+            "description": "Principal + commission for the suggestion"
+          },
+          "commission_rate": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Commission Rate"
+          },
+          "budget_usage_pct": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Budget Usage Pct"
+          },
+          "score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Score"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "listing",
+          "suggested_weight_grams",
+          "execution_price_per_gram",
+          "estimated_total_iqd",
+          "commission_rate",
+          "budget_usage_pct",
+          "score",
+          "reason"
+        ],
+        "title": "MatchResult"
+      },
+      "OwnershipOut": {
+        "properties": {
+          "investor_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Investor Id"
+          },
+          "total_accumulated_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Accumulated Grams"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "Signature checked on this request"
+          },
+          "digital_signature_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digital Signature Token"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Shown when the investor owns nothing"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "التوقيع الرقمي إثبات تقني داخلي لسلامة رصيدك داخل منصة صِلة، وليس سند ملكية قانونياً معترفاً به رسمياً."
+          }
+        },
+        "type": "object",
+        "required": [
+          "investor_id",
+          "total_accumulated_grams",
+          "verified",
+          "digital_signature_token",
+          "updated_at"
+        ],
+        "title": "OwnershipOut"
+      },
+      "OwnershipSummary": {
+        "properties": {
+          "total_accumulated_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Accumulated Grams"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_accumulated_grams",
+          "updated_at"
+        ],
+        "title": "OwnershipSummary"
+      },
+      "Page_ListingOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ListingOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ListingOut]"
+      },
+      "Page_TransactionOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[TransactionOut]"
+      },
+      "PaymentOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "payment_ref": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Payment Ref"
+          },
+          "amount_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount Iqd"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "payment_ref",
+          "amount_iqd",
+          "purpose"
+        ],
+        "title": "PaymentOut"
+      },
+      "PortfolioPerformance": {
+        "properties": {
+          "total_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Grams"
+          },
+          "total_paid_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Paid Iqd",
+            "description": "Sum of total_paid_by_investor"
+          },
+          "current_value_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Current Value Iqd",
+            "description": "Grams × today's price for each karat"
+          },
+          "unrealized_pnl_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unrealized Pnl Iqd"
+          },
+          "unrealized_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrealized Pnl Pct"
+          },
+          "transactions_count": {
+            "type": "integer",
+            "title": "Transactions Count"
+          },
+          "by_karat": {
+            "items": {
+              "$ref": "#/components/schemas/KaratHolding"
+            },
+            "type": "array",
+            "title": "By Karat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_grams",
+          "total_paid_iqd",
+          "current_value_iqd",
+          "unrealized_pnl_iqd",
+          "unrealized_pnl_pct",
+          "transactions_count",
+          "by_karat"
+        ],
+        "title": "PortfolioPerformance"
+      },
+      "PreviewIn": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "purchased_weight_grams": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,7}|(?=[\\d.]{1,11}0*$)\\d{0,7}\\.\\d{0,3}0*$)"
+              }
+            ],
+            "title": "Purchased Weight Grams",
+            "examples": [
+              "84.250"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "purchased_weight_grams"
+        ],
+        "title": "PreviewIn"
+      },
+      "PreviewOut": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "karat": {
+            "type": "integer",
+            "title": "Karat"
+          },
+          "purchased_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Purchased Weight Grams"
+          },
+          "execution_price_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Execution Price Per Gram"
+          },
+          "principal_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Principal Amount",
+            "description": "What the seller receives in full"
+          },
+          "commission_rate": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Commission Rate"
+          },
+          "commission_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Commission Amount"
+          },
+          "total_paid_by_investor": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Paid By Investor"
+          },
+          "price_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Price Updated At",
+            "description": "Timestamp of the market price used"
+          },
+          "quoted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Quoted At"
+          },
+          "quote_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Quote Expires At"
+          },
+          "quote_token": {
+            "type": "string",
+            "title": "Quote Token",
+            "description": "Send back to /confirm before quote_expires_at"
+          },
+          "risk_insight": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskInsightOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "risk_insight_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Insight Note",
+            "description": "Shown instead of the insight when AI analysis is unavailable"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "karat",
+          "purchased_weight_grams",
+          "execution_price_per_gram",
+          "principal_amount",
+          "commission_rate",
+          "commission_amount",
+          "total_paid_by_investor",
+          "price_updated_at",
+          "quoted_at",
+          "quote_expires_at",
+          "quote_token",
+          "risk_insight"
+        ],
+        "title": "PreviewOut"
+      },
+      "PriceHistoryOut": {
+        "properties": {
+          "karat": {
+            "type": "integer",
+            "title": "Karat"
+          },
+          "range": {
+            "type": "string",
+            "enum": [
+              "1D",
+              "1W",
+              "1M",
+              "3M",
+              "1Y"
+            ],
+            "title": "Range"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "IQD"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/PricePoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "karat",
+          "range",
+          "points"
+        ],
+        "title": "PriceHistoryOut"
+      },
+      "PricePoint": {
+        "properties": {
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "price_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price Per Gram"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ts",
+          "price_per_gram"
+        ],
+        "title": "PricePoint"
+      },
+      "PromoteOut": {
+        "properties": {
+          "listing": {
+            "$ref": "#/components/schemas/ListingOut"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "listing",
+          "payment"
+        ],
+        "title": "PromoteOut"
+      },
+      "PublicConfigOut": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "supported_karats": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Supported Karats"
+          },
+          "commission_tiers": {
+            "items": {
+              "$ref": "#/components/schemas/CommissionTier"
+            },
+            "type": "array",
+            "title": "Commission Tiers"
+          },
+          "promotion_fee_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Promotion Fee Iqd"
+          },
+          "promotion_duration_days": {
+            "type": "integer",
+            "title": "Promotion Duration Days"
+          },
+          "subscription_price_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Subscription Price Iqd"
+          },
+          "subscription_duration_days": {
+            "type": "integer",
+            "title": "Subscription Duration Days"
+          },
+          "quote_ttl_seconds": {
+            "type": "integer",
+            "title": "Quote Ttl Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "supported_karats",
+          "commission_tiers",
+          "promotion_fee_iqd",
+          "promotion_duration_days",
+          "subscription_price_iqd",
+          "subscription_duration_days",
+          "quote_ttl_seconds"
+        ],
+        "title": "PublicConfigOut"
+      },
+      "RefreshIn": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshIn"
+      },
+      "RiskAnalysisIn": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "weight_grams": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,7}|(?=[\\d.]{1,11}0*$)\\d{0,7}\\.\\d{0,3}0*$)"
+              }
+            ],
+            "title": "Weight Grams",
+            "description": "Same meaning as purchased_weight_grams",
+            "examples": [
+              "84.250"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "weight_grams"
+        ],
+        "title": "RiskAnalysisIn"
+      },
+      "RiskAnalysisOut": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Level"
+          },
+          "insight": {
+            "type": "string",
+            "title": "Insight"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signals"
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "llm"
+            ],
+            "title": "Engine"
+          },
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "purchased_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Purchased Weight Grams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "insight",
+          "signals",
+          "engine",
+          "asset_id",
+          "purchased_weight_grams"
+        ],
+        "title": "RiskAnalysisOut"
+      },
+      "RiskInsightOut": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Level"
+          },
+          "insight": {
+            "type": "string",
+            "title": "Insight"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signals"
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "llm"
+            ],
+            "title": "Engine"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "insight",
+          "signals",
+          "engine"
+        ],
+        "title": "RiskInsightOut"
+      },
+      "RiskProfile": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "RiskProfile"
+      },
+      "SignupIn": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Full Name",
+            "examples": [
+              "زينب الموسوي"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "examples": [
+              "zainab@example.iq"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 72,
+            "minLength": 8,
+            "title": "Password",
+            "examples": [
+              "Sila@2026"
+            ]
+          },
+          "risk_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required for investors; ignored for sellers."
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "full_name",
+          "email",
+          "password"
+        ],
+        "title": "SignupIn"
+      },
+      "SubscribeOut": {
+        "properties": {
+          "subscription_tier": {
+            "$ref": "#/components/schemas/SubscriptionTier"
+          },
+          "subscription_expiry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Expiry Date"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "days_remaining": {
+            "type": "integer",
+            "title": "Days Remaining"
+          },
+          "price_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price Iqd"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subscription_tier",
+          "subscription_expiry_date",
+          "is_active",
+          "days_remaining",
+          "price_iqd",
+          "duration_days",
+          "payment"
+        ],
+        "title": "SubscribeOut"
+      },
+      "SubscriptionStatusOut": {
+        "properties": {
+          "subscription_tier": {
+            "$ref": "#/components/schemas/SubscriptionTier"
+          },
+          "subscription_expiry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Expiry Date"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "days_remaining": {
+            "type": "integer",
+            "title": "Days Remaining"
+          },
+          "price_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price Iqd"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subscription_tier",
+          "subscription_expiry_date",
+          "is_active",
+          "days_remaining",
+          "price_iqd",
+          "duration_days"
+        ],
+        "title": "SubscriptionStatusOut"
+      },
+      "SubscriptionTier": {
+        "type": "string",
+        "enum": [
+          "free",
+          "premium"
+        ],
+        "title": "SubscriptionTier"
+      },
+      "TokenOut": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Access token lifetime in seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in"
+        ],
+        "title": "TokenOut"
+      },
+      "TransactionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id"
+          },
+          "karat": {
+            "type": "integer",
+            "title": "Karat"
+          },
+          "seller_name": {
+            "type": "string",
+            "title": "Seller Name"
+          },
+          "buyer_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyer Ref",
+            "description": "Anonymized buyer (seller view only)"
+          },
+          "purchased_weight_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Purchased Weight Grams"
+          },
+          "execution_price_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Execution Price Per Gram"
+          },
+          "principal_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Principal Amount"
+          },
+          "commission_rate": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Commission Rate"
+          },
+          "commission_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Commission Amount"
+          },
+          "total_paid_by_investor": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Paid By Investor"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "asset_id",
+          "karat",
+          "seller_name",
+          "buyer_ref",
+          "purchased_weight_grams",
+          "execution_price_per_gram",
+          "principal_amount",
+          "commission_rate",
+          "commission_amount",
+          "total_paid_by_investor",
+          "created_at"
+        ],
+        "title": "TransactionOut"
+      },
+      "UserOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "kyc_verified": {
+            "type": "boolean",
+            "title": "Kyc Verified"
+          },
+          "risk_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subscription_tier": {
+            "$ref": "#/components/schemas/SubscriptionTier"
+          },
+          "subscription_expiry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Expiry Date"
+          },
+          "is_premium_active": {
+            "type": "boolean",
+            "title": "Is Premium Active",
+            "description": "subscription_expiry_date > now(); use this, not subscription_tier, to gate UI"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "full_name",
+          "email",
+          "kyc_verified",
+          "risk_profile",
+          "subscription_tier",
+          "subscription_expiry_date",
+          "is_premium_active",
+          "created_at"
+        ],
+        "title": "UserOut"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "investor",
+          "seller"
+        ],
+        "title": "UserRole"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Access token from /api/auth/login",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Identity & Security",
+      "description": "Signup, login, JWT refresh, profile, mock KYC (توقيعك)"
+    },
+    {
+      "name": "Market Data",
+      "description": "Cached live gold/USD prices and chart history"
+    },
+    {
+      "name": "Listing & Asset",
+      "description": "Seller listings, browsing, promotion"
+    },
+    {
+      "name": "AI Engine",
+      "description": "Smart matching, risk analysis, premium insights"
+    },
+    {
+      "name": "Order & Transaction",
+      "description": "Checkout preview/confirm and history"
+    },
+    {
+      "name": "Subscription & Mock Payment",
+      "description": "Premium subscription (internal mock payment)"
+    },
+    {
+      "name": "Ownership",
+      "description": "Signed fractional-ownership balance"
+    },
+    {
+      "name": "System",
+      "description": "Health and public configuration"
+    }
+  ]
+}

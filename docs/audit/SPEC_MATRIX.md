@@ -69,7 +69,7 @@ Legend: ✅ done · ⚠️ partial, with an accepted reason · ❌ missing
 | LS-17 | API §3, WF06-B | `POST /api/listings/{id}/promote` owner + KYC-verified | ✅ | `test_listings.py` |
 | LS-18 | API §3 note, WF06-B §1 | Promotion fee is a server config value; client cannot send it | ✅ | `core/config.py` |
 | LS-19 | WF06-B §3-4 | Promotion pays via internal mock payment, then sets `is_promoted=true`, `promotion_expiry_date=now()+duration` | ✅ | `test_listings.py` |
-| LS-20 | WF06 edge | Mock payment failure → listing stays unpromoted, error returned | ✅ | `test_subscription.py::test_payment_failure_*` |
+| LS-20 | WF06 edge | Mock payment failure → listing stays unpromoted, error returned | ✅ | `test_listings.py::test_promote_payment_failure_leaves_listing_unpromoted` |
 | LS-21 | DM 3 | `available_weight_grams` reaching 0 → `sold_out` automatically | ✅ | `test_checkout.py` |
 
 ## D. AI Engine
@@ -180,11 +180,11 @@ Legend: ✅ done · ⚠️ partial, with an accepted reason · ❌ missing
 | CC-11 | P§4.1 | Settings via `pydantic-settings` | ✅ | `core/config.py` |
 | CC-12 | P§4.4 | Dependencies pinned | ✅ | `requirements.txt` |
 | CC-13 | P§5.1 | snake_case JSON, UUID strings, ISO-8601 UTC datetimes, Decimal as string | ✅ | `API_CONTRACT.md` |
-| CC-14 | P§5.2 | OpenAPI: tags per module, `response_model` on every route, error responses, exported `docs/api/openapi.json` | ✅ | `scripts/export_openapi.py` |
+| CC-14 | P§5.2 | OpenAPI: tags per module, `response_model` on every route, error responses, exported `docs/api/openapi.json` | ✅ | `app/scripts/export_openapi.py`, `docs/api/openapi.json` |
 | CC-15 | P§5.9 | `GET /api/health` (DB + price-cache age) | ✅ | `test_market.py` |
 | CC-16 | P§7.2 | Product name Sila (صِلة) in code, docs, OpenAPI title | ✅ | `main.py` |
 | CC-17 | SD §5 | HTTPS on all endpoints | ⚠️ | TLS is terminated by the deployment's reverse proxy / hosting; the app does not serve TLS itself (see D-12) |
 | CC-18 | SD §5 | Token storage: httpOnly cookie **or** secure storage | ⚠️ | Bearer tokens in the JSON body (the "secure storage" option); storage is a frontend decision (see D-11) |
 | CC-19 | P§6 | `docker compose up` runs PostgreSQL + API with auto-migrations; seed script; README | ✅ | `docker-compose.yml`, `app/scripts/seed.py`, `README.md` |
 
-**Totals:** 116 requirements · ✅ 114 · ⚠️ 2 · ❌ 0
+**Totals:** 136 requirements · ✅ 134 · ⚠️ 2 · ❌ 0 (verified by 104 passing tests on PostgreSQL 16, plus a manual end-to-end run against the Docker container)

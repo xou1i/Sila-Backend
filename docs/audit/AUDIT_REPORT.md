@@ -86,8 +86,7 @@ Found none of the §5 items: no auth flow, no stable contract (int IDs, floats, 
 
 ## 8. Post-hardening verification
 
-Filled in after execution; see `PLAN.md` for the results of every step.
-
-- `pytest`: all tests pass against PostgreSQL 16 (see final report for count).
+- `pytest`: **104 passed** against PostgreSQL 16. The schema is built with `alembic upgrade head` on an empty database each run.
 - `ruff check .` and `ruff format --check .`: clean.
-- Float check: `grep -rnE "\bfloat\b|Float" app/` returns no money/weight paths (the only hits are the rate-limit timing and the external price provider's JSON parsing, which is converted with `Decimal(str(...))` immediately).
+- Float check, `grep -rnE "float|Float|float\(" app/`. The only hits are `price_fetch_timeout_seconds`, `ai_timeout_seconds`, the provider's `timeout` parameter and the rate limiter's monotonic clock. Provider JSON is parsed with `parse_float=Decimal`, so no money or weight value is ever a binary float.
+- All Critical/High findings (S1–S8) and bugs B1–B9 are fixed. Status per requirement is in `SPEC_MATRIX.md`; the steps are in `PLAN.md`.
