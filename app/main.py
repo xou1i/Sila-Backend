@@ -1,141 +1,94 @@
-from fastapi import FastAPI, HTTPException, Depends
+"""Sila (صِلة) API: modular monolith entry point."""
+
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from typing import List
-import urllib.request
-import json
+from starlette.concurrency import run_in_threadpool
 
-from app import models, schemas
-from app.database import engine, get_db
+from app.core.config import get_settings
+from app.core.errors import install_error_handlers
+from app.jobs.scheduler import build_scheduler, refresh_prices_job
+from app.modules.ai.router import router as ai_router
+from app.modules.identity.router import router as identity_router
+from app.modules.listings.router import router as listings_router
+from app.modules.market.router import router as market_router
+from app.modules.orders.router import router as orders_router
+from app.modules.ownership.router import router as ownership_router
+from app.modules.subscription.router import router as subscription_router
+from app.modules.system.router import router as system_router
 
-models.Base.metadata.create_all(bind=engine)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-app = FastAPI(
-    title="SmartBridge API - Trident Wealth",
-    description="المنصة الخلفية لإدارة واستثمار الذهب والأصول",
-    version="1.0.0"
-)
+TAGS = [
+    {
+        "name": "Identity & Security",
+        "description": "Signup, login, JWT refresh, profile, mock KYC (توقيعك)",
+    },
+    {"name": "Market Data", "description": "Cached live gold/USD prices and chart history"},
+    {"name": "Listing & Asset", "description": "Seller listings, browsing, promotion"},
+    {"name": "AI Engine", "description": "Smart matching, risk analysis, premium insights"},
+    {"name": "Order & Transaction", "description": "Checkout preview/confirm and history"},
+    {
+        "name": "Subscription & Mock Payment",
+        "description": "Premium subscription (internal mock payment)",
+    },
+    {"name": "Ownership", "description": "Signed fractional-ownership balance"},
+    {"name": "System", "description": "Health and public configuration"},
+]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-def get_live_gold_price() -> float:
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    scheduler = None
+    if settings.scheduler_enabled:
+        # One synchronous refresh so the cache is never empty on first request.
+        await run_in_threadpool(refresh_prices_job)
+        scheduler = build_scheduler()
+        scheduler.start()
     try:
-        url = "https://api.exchangerate-api.com/v4/latest/USD"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=3) as response:
-            return 75.50
-    except Exception:
-        return 75.50
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
 
-@app.post("/api/auth/signup", response_model=schemas.UserOut)
-def signup(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(models.User).filter(models.User.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="البريد الإلكتروني مُسجل بالفعل")
-    
-    new_user = models.User(
-        full_name=user_data.full_name,
-        email=user_data.email,
-        password_hash=user_data.password,
-        role=user_data.role,
-        risk_profile=user_data.risk_profile
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(
+        title="Sila (صِلة) API",
+        description=(
+            "Gold marketplace for the Iraqi market. All errors use "
+            "`{error_code, message, status}`. Money and weights are decimal strings."
+        ),
+        version="1.0.0",
+        openapi_tags=TAGS,
+        lifespan=lifespan,
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
-@app.post("/api/kyc/verify/{user_id}")
-def verify_kyc(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="المستخدم غير موجود")
-    
-    user.kyc_verified = True
-    db.commit()
-    return {"message": "تم توثيق حساب الـ KYC بنجاح", "user_id": user_id, "kyc_verified": True}
-
-@app.get("/api/market/prices", response_model=schemas.MarketPriceResponse)
-def get_market_prices():
-    base_price_24k = get_live_gold_price()
-    return {
-        "gold_24k_per_gram": base_price_24k,
-        "gold_21k_per_gram": round(base_price_24k * (21 / 24), 2),
-        "gold_18k_per_gram": round(base_price_24k * (18 / 24), 2),
-        "currency": "USD"
-    }
-
-@app.get("/api/listings", response_model=List[schemas.ListingResponse])
-def get_listings(db: Session = Depends(get_db)):
-    listings = db.query(models.AssetListing).filter(models.AssetListing.status == "active").all()
-    return listings
-
-@app.post("/api/listings", response_model=schemas.ListingResponse)
-def create_listing(listing_data: schemas.ListingCreate, db: Session = Depends(get_db)):
-    seller = db.query(models.User).filter(models.User.id == listing_data.seller_id).first()
-    if not seller or seller.role != "seller":
-        raise HTTPException(status_code=400, detail="المستخدم يجب أن يكون بائعاً مسجلاً")
-    if not seller.kyc_verified:
-        raise HTTPException(status_code=400, detail="حساب البائع غير موثق بـ KYC")
-
-    new_listing = models.AssetListing(
-        seller_id=listing_data.seller_id,
-        total_weight_grams=listing_data.total_weight_grams,
-        available_weight_grams=listing_data.total_weight_grams,
-        karat=listing_data.karat,
-        is_promoted=listing_data.is_promoted
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
+        expose_headers=["Retry-After"],
     )
-    db.add(new_listing)
-    db.commit()
-    db.refresh(new_listing)
-    return new_listing
+    install_error_handlers(app)
+    for router in (
+        identity_router,
+        market_router,
+        listings_router,
+        ai_router,
+        orders_router,
+        subscription_router,
+        ownership_router,
+        system_router,
+    ):
+        app.include_router(router)
+    return app
 
-@app.post("/api/transactions/preview", response_model=schemas.TransactionPreviewResponse)
-def preview_transaction(req: schemas.TransactionPreviewRequest, db: Session = Depends(get_db)):
-    listing = db.query(models.AssetListing).filter(models.AssetListing.id == req.listing_id).first()
-    if not listing:
-        raise HTTPException(status_code=404, detail="عرض الذهب غير موجود")
-    if listing.available_weight_grams < req.weight_grams:
-        raise HTTPException(status_code=400, detail="الكمية المطلوبة غير متوفرة")
-    price_per_gram = get_live_gold_price()
-    gold_price = req.weight_grams * price_per_gram
-    platform_fee = gold_price * 0.015
-    total_price = gold_price + platform_fee
 
-    return {
-        "weight_grams": req.weight_grams,
-        "price_per_gram": price_per_gram,
-        "gold_price": round(gold_price, 2),
-        "platform_fee": round(platform_fee, 2),
-        "total_price": round(total_price, 2)
-    }
-
-@app.post("/api/transactions/confirm")
-def confirm_transaction(req: schemas.TransactionConfirmRequest, db: Session = Depends(get_db)):
-    investor = db.query(models.User).filter(models.User.id == req.investor_id).first()
-    if not investor or investor.role != "investor":
-        raise HTTPException(status_code=400, detail="المستخدم يجب أن يكون مستثمراً")
-    if not investor.kyc_verified:
-        raise HTTPException(status_code=400, detail="حساب المستثمر غير موثق بـ KYC")
-
-    listing = db.query(models.AssetListing).filter(models.AssetListing.id == req.listing_id).first()
-    if not listing or listing.available_weight_grams < req.weight_grams:
-        raise HTTPException(status_code=400, detail="الكمية المحددة غير متوفرة للشراء")
-
-    listing.available_weight_grams -= req.weight_grams
-    if listing.available_weight_grams == 0:
-        listing.status = "sold_out"
-
-    db.commit()
-    return {
-        "message": "تمت عملية الشراء وتأكيد المعاملة بنجاح",
-        "investor_id": req.investor_id,
-        "weight_purchased": req.weight_grams,
-        "remaining_weight": listing.available_weight_grams
-    }
+app = create_app()
