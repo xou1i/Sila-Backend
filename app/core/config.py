@@ -1,10 +1,22 @@
 """Application settings, loaded from environment variables / `.env`."""
 
+import os
 from decimal import Decimal
 from functools import lru_cache
+from urllib.parse import quote
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _url_from_pg_env() -> str | None:
+    env = os.environ
+    if not all(env.get(k) for k in ("PGHOST", "PGUSER", "PGPASSWORD", "PGDATABASE")):
+        return None
+    return (
+        f"postgresql://{quote(env['PGUSER'], safe='')}:{quote(env['PGPASSWORD'], safe='')}"
+        f"@{env['PGHOST']}:{env.get('PGPORT', '5432')}/{env['PGDATABASE']}"
+    )
 
 
 class Settings(BaseSettings):
@@ -15,11 +27,23 @@ class Settings(BaseSettings):
 
     @field_validator("database_url")
     @classmethod
-    def _use_psycopg3(cls, url: str) -> str:
+    def _normalize_database_url(cls, url: str) -> str:
+        url = url.strip().strip("'\"").strip()
+        if not url or "${{" in url:
+            # Empty or an unresolved Railway reference: build it from the PG* variables
+            # that a Railway/Heroku PostgreSQL service exposes, if they are present.
+            url = _url_from_pg_env() or ""
+        if not url:
+            raise ValueError(
+                "DATABASE_URL is empty or an unresolved reference. On Railway, set it on the "
+                "API service to ${{<postgres-service>.DATABASE_URL}}, not on the Postgres service."
+            )
         # Hosts like Railway/Heroku give postgres:// or postgresql://; we ship psycopg 3.
         for prefix in ("postgres://", "postgresql://"):
             if url.startswith(prefix):
                 return "postgresql+psycopg://" + url[len(prefix) :]
+        if "://" not in url:
+            raise ValueError("DATABASE_URL must look like postgresql://user:password@host:5432/db")
         return url
 
     # Secrets: required, never defaulted.
