@@ -18,4 +18,5 @@ USER sila
 
 EXPOSE 8010
 # Migrations are applied on every start (idempotent), then the API is served.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8010 --proxy-headers"]
+# PORT is injected by hosts like Railway; 8010 locally.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8010} --proxy-headers --forwarded-allow-ips=*"]

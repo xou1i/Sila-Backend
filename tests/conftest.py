@@ -22,6 +22,7 @@ os.environ.update(
         "RATE_LIMIT_LOGIN": "1000/minute",
         "RATE_LIMIT_KYC": "1000/minute",
         "RATE_LIMIT_AI": "1000/minute",
+        "CORS_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
     }
 )
 
