@@ -93,7 +93,8 @@ class Settings(BaseSettings):
     advisor_api_key: str = ""
     advisor_model: str = ""
     advisor_timeout_seconds: float = 15
-    advisor_max_output_tokens: int = Field(default=600, ge=50, le=4000)
+    # Reasoning models (gpt-oss) count their thinking in this limit, so keep room for it
+    advisor_max_output_tokens: int = Field(default=2000, ge=50, le=8000)
 
     @property
     def cors_origin_list(self) -> list[str]:
