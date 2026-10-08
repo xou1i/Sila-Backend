@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.schemas import AmountIQD, Grams
 from app.models import RiskProfile
@@ -78,3 +79,44 @@ class InsightsOut(BaseModel):
     alerts: list[str]
     market: MarketTrend
     portfolio: PortfolioPerformance
+
+
+class AdvisorIn(BaseModel):
+    question: str = Field(min_length=1, max_length=500, examples=["شنو أحسن شي أشتريه هسة؟"])
+    budget_iqd: AmountIQD | None = Field(
+        default=None, description="Wins over any amount written in the question"
+    )
+
+    @field_validator("question")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("question must not be blank")
+        return value.strip()
+
+
+class AdvisorBudget(BaseModel):
+    amount_iqd: Decimal
+    source: Literal["request", "question_digits", "question_words"]
+    confirmed: bool = Field(
+        description="False when read from words in the question: no suggestion until the user "
+        "confirms by sending the amount as budget_iqd"
+    )
+
+
+class AdvisorMarket(BaseModel):
+    price_24k_per_gram: Decimal
+    change_24h_pct: Decimal | None
+    updated_at: datetime
+    is_stale: bool
+
+
+class AdvisorOut(BaseModel):
+    engine: Engine = Field(description="llm = worded by the model; rules = rule-based answer")
+    answer: str
+    budget: AdvisorBudget | None = Field(description="null when no budget was given or found")
+    suggestions: list[MatchResult] = Field(
+        description="From the rule-based matcher (same as /api/ai/match), never from the model"
+    )
+    market_snapshot: AdvisorMarket
+    disclaimer: str = Field(description="Always shown under the answer")
