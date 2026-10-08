@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import urllib.error
@@ -218,6 +219,42 @@ async def test_api_key_is_never_logged(client, monkeypatch, caplog) -> None:
     with caplog.at_level(logging.DEBUG):
         await _ask(client, investor, "شنو أشتري؟", "1500000")
     assert "401" in caplog.text and KEY not in caplog.text
+
+
+async def test_provider_error_text_is_logged(client, monkeypatch, caplog) -> None:
+    await _market(client)
+    investor = await make_user(client)
+    body = io.BytesIO(b'{"error": {"message": "Invalid API Key"}}')
+    _use_groq(
+        monkeypatch, error=urllib.error.HTTPError("https://x", 401, "Unauthorized", None, body)
+    )
+    with caplog.at_level(logging.WARNING):
+        await _ask(client, investor, "شنو أشتري؟", "1500000")
+    assert "Invalid API Key" in caplog.text and KEY not in caplog.text
+
+
+def test_request_sends_a_user_agent(monkeypatch) -> None:
+    # Without it, Cloudflare in front of Groq answers 403 (error 1010)
+    sent: list = []
+
+    class Reply:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b'{"ok": true}'
+
+    def fake_urlopen(request, timeout):
+        sent.append(request)
+        return Reply()
+
+    monkeypatch.setattr(providers.urllib.request, "urlopen", fake_urlopen)
+    providers._post_json("https://example.test/v1/chat/completions", {}, KEY, 5)
+    assert sent[0].get_header("User-agent") == providers.USER_AGENT
+    assert sent[0].get_header("Authorization") == f"Bearer {KEY}"
 
 
 async def test_provider_none_makes_no_call(client, monkeypatch) -> None:
