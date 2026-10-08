@@ -26,6 +26,10 @@ DEFAULT_BASE_URLS = {
     "groq": "https://api.groq.com/openai/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai/",
 }
+# Cloudflare in front of some providers (Groq) rejects urllib's default "Python-urllib"
+# User-Agent with 403 (error 1010) before the request reaches the API.
+USER_AGENT = "sila-backend/1.0"
+
 DEFAULT_MODELS = {
     "groq": "llama-3.3-70b-versatile",
     "gemini": "gemini-3.8-flash",
@@ -56,11 +60,23 @@ def _post_json(url: str, payload: dict[str, Any], api_key: str, timeout: float) 
     request = urllib.request.Request(  # noqa: S310 (callers pass https URLs only)
         url,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": USER_AGENT,
+        },
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 (https checked)
         return json.loads(response.read().decode("utf-8"))
+
+
+def _error_text(exc: urllib.error.HTTPError) -> str:
+    try:
+        body = exc.read(300).decode("utf-8", errors="replace")
+    except (OSError, ValueError):
+        return "no body"
+    return " ".join(body.split())[:200] or "no body"
 
 
 def _openai_compatible(provider: str, system: str, user: str) -> str | None:
@@ -86,8 +102,14 @@ def _openai_compatible(provider: str, system: str, user: str) -> str | None:
             settings.advisor_timeout_seconds,
         )
     except urllib.error.HTTPError as exc:
-        # 429 (provider rate limit), 401 (bad key), 5xx: same fallback
-        logger.warning("Advisor provider %s answered HTTP %s; using rules", provider, exc.code)
+        # 429 (provider rate limit), 401 (bad key), 5xx: same fallback. The provider's error
+        # text (never the key, which travels in a header) helps tell these apart in the logs.
+        logger.warning(
+            "Advisor provider %s answered HTTP %s (%s); using rules",
+            provider,
+            exc.code,
+            _error_text(exc),
+        )
         return None
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         logger.warning("Advisor provider %s failed (%s); using rules", provider, type(exc).__name__)
