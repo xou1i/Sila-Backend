@@ -3,6 +3,7 @@
 import os
 from decimal import Decimal
 from functools import lru_cache
+from typing import Literal
 from urllib.parse import quote
 
 from pydantic import Field, field_validator
@@ -83,6 +84,16 @@ class Settings(BaseSettings):
     ai_model: str = "claude-opus-5"
     ai_timeout_seconds: float = 6
     ai_match_min_grams: Decimal = Decimal("1")
+
+    # AI Advisor (POST /api/ai/advisor). groq and gemini use an OpenAI-compatible Chat
+    # Completions endpoint; anthropic reuses the SDK of llm.py; none = rule-based answer only.
+    # Empty base URL / model = the provider defaults in app/modules/ai/providers.py.
+    advisor_provider: Literal["none", "groq", "gemini", "anthropic"] = "none"
+    advisor_base_url: str = ""
+    advisor_api_key: str = ""
+    advisor_model: str = ""
+    advisor_timeout_seconds: float = 15
+    advisor_max_output_tokens: int = Field(default=600, ge=50, le=4000)
 
     @property
     def cors_origin_list(self) -> list[str]:

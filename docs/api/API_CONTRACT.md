@@ -128,7 +128,25 @@ Listing card (`ListingOut`):
 | `POST /api/ai/risk-analysis` | `{asset_id, weight_grams}` | `{level: low|medium|high, insight, signals[], engine, asset_id, purchased_weight_grams}` |
 | `GET /api/ai/insights` | — | Premium only: `{engine, alerts[], market:{…trend…}, portfolio:{total_grams, total_paid_iqd, current_value_iqd, unrealized_pnl_iqd, unrealized_pnl_pct, by_karat[]}}` |
 
+| `POST /api/ai/advisor` | `{question (1–500 chars), budget_iqd?}` | `{engine, answer, budget, suggestions[], market_snapshot:{price_24k_per_gram, change_24h_pct, updated_at, is_stale}, disclaimer}`. Free. See below. |
+
 `engine` is `"rules"` (deterministic) or `"llm"` (text rewritten by Claude). The numbers are identical either way.
+
+#### AI Advisor (`POST /api/ai/advisor`)
+A free question in Arabic ("عندي مليونين، شنو أحسن شي أشتريه هسة؟") → a short Arabic `answer` plus offers the investor can buy.
+- **`suggestions`** have the exact shape of `/api/ai/match` `results` (`listing` is a full `ListingOut`): send the user to checkout with them. They always come from the rule-based matcher, never from the model text.
+- **`budget`** is `null` or `{amount_iqd, source, confirmed}`:
+  | `source` | When | `confirmed` | `suggestions` |
+  |---|---|---|---|
+  | `request` | `budget_iqd` was sent (wins over the question) | `true` | yes |
+  | `question_digits` | digits in the question: `2000000`, `2,000,000`, `٢٠٠٠٠٠٠` | `true` | yes |
+  | `question_words` | words: `مليونين`, `نص مليون`, `3 ملايين`, `500 ألف`; or two different amounts | **`false`** | **empty**: show "فهمت ميزانيتك X، صح؟" and, on yes, resend the same question with `budget_iqd` |
+  - `budget: null` → the answer covers the market only; offer quick budget choices and resend with `budget_iqd`.
+- **`engine`**: `"llm"` when the configured model worded the answer, `"rules"` otherwise (no provider, any provider failure, or a reply rejected by the check: a number not in the data, an offer that does not exist, a profit promise, a non-Arabic reply). The UI may show that the answer is simplified.
+- **`disclaimer`** is always present: always show it under the answer.
+- Only anonymous data reaches the model (prices, risk profile, holdings in grams, budget, offers numbered 1–5 without ids or seller names). E-mails and phone numbers are removed from the question. Questions are independent: send no history.
+- Errors: `403 FORBIDDEN` (not an investor), `422 VALIDATION_ERROR`, `429 RATE_LIMITED` (shares the AI limit), `503 AI_UNAVAILABLE` (no price data at all).
+- Server config: `ADVISOR_PROVIDER` (`none|groq|gemini|anthropic`), `ADVISOR_API_KEY`, `ADVISOR_MODEL`, `ADVISOR_BASE_URL`, `ADVISOR_TIMEOUT_SECONDS`, `ADVISOR_MAX_OUTPUT_TOKENS` (see `.env.example`). The key never reaches the frontend.
 
 ### Order & Transaction
 | | Method & path | Notes |

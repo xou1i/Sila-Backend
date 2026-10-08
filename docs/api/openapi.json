@@ -1203,6 +1203,92 @@
         ]
       }
     },
+    "/api/ai/advisor": {
+      "post": {
+        "tags": [
+          "AI Engine"
+        ],
+        "summary": "AI Advisor (free): an Arabic answer to a question + offers from the matcher",
+        "operationId": "ai_advisor_api_ai_advisor_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvisorIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvisorOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/transactions/preview": {
       "post": {
         "tags": [
@@ -1748,6 +1834,170 @@
   },
   "components": {
     "schemas": {
+      "AdvisorBudget": {
+        "properties": {
+          "amount_iqd": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount Iqd"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "request",
+              "question_digits",
+              "question_words"
+            ],
+            "title": "Source"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "title": "Confirmed",
+            "description": "False when read from words in the question: no suggestion until the user confirms by sending the amount as budget_iqd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount_iqd",
+          "source",
+          "confirmed"
+        ],
+        "title": "AdvisorBudget"
+      },
+      "AdvisorIn": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question",
+            "examples": [
+              "شنو أحسن شي أشتريه هسة؟"
+            ]
+          },
+          "budget_iqd": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0.0
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,17}0*$)\\d{0,14}\\.\\d{0,2}0*$)"
+                  }
+                ],
+                "examples": [
+                  "1500000"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Iqd",
+            "description": "Wins over any amount written in the question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AdvisorIn"
+      },
+      "AdvisorMarket": {
+        "properties": {
+          "price_24k_per_gram": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price 24K Per Gram"
+          },
+          "change_24h_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 24H Pct"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "is_stale": {
+            "type": "boolean",
+            "title": "Is Stale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "price_24k_per_gram",
+          "change_24h_pct",
+          "updated_at",
+          "is_stale"
+        ],
+        "title": "AdvisorMarket"
+      },
+      "AdvisorOut": {
+        "properties": {
+          "engine": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "llm"
+            ],
+            "title": "Engine",
+            "description": "llm = worded by the model; rules = rule-based answer"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdvisorBudget"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null when no budget was given or found"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/MatchResult"
+            },
+            "type": "array",
+            "title": "Suggestions",
+            "description": "From the rule-based matcher (same as /api/ai/match), never from the model"
+          },
+          "market_snapshot": {
+            "$ref": "#/components/schemas/AdvisorMarket"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "Always shown under the answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "engine",
+          "answer",
+          "budget",
+          "suggestions",
+          "market_snapshot",
+          "disclaimer"
+        ],
+        "title": "AdvisorOut"
+      },
       "CommissionTier": {
         "properties": {
           "label": {
