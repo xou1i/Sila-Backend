@@ -8,6 +8,7 @@ rule-based answer (engine "rules"). Only anonymous data leaves the server.
 """
 
 import json
+import logging
 import re
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -29,6 +30,8 @@ from app.modules.ai.schemas import (
     MatchResult,
 )
 from app.modules.market import service as market
+
+logger = logging.getLogger("sila.ai.advisor")
 
 DISCLAIMER = "هذي المعلومات استرشادية وليست نصيحة مالية. قرار الشراء يرجعلك."
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "advisor_system.md").read_text(
@@ -205,25 +208,36 @@ def _allowed_numbers(context: dict[str, Any]) -> set[Decimal]:
 
 
 def check_answer(reply: str, context: dict[str, Any], offer_count: int) -> str | None:
-    """The cleaned answer, or None when it must not be shown."""
+    """The cleaned answer, or None when it must not be shown (the reason is logged)."""
     text = re.sub(r"[*#`_]+", "", reply)
     text = re.sub(r"\s+", " ", text).strip()
-    if not text or len(text) > MAX_ANSWER_CHARS:
+    reason = _rejection(text, context, offer_count)
+    if reason is not None:
+        # The reason only, never the reply or the question
+        logger.warning("Advisor reply failed the output check (%s); using rules", reason)
         return None
+    return text
+
+
+def _rejection(text: str, context: dict[str, Any], offer_count: int) -> str | None:
+    if not text:
+        return "empty"
+    if len(text) > MAX_ANSWER_CHARS:
+        return f"too long: {len(text)} chars"
     if len(_LATIN_LETTER.findall(text)) > len(_ARABIC_LETTER.findall(text)):
-        return None
+        return "not Arabic"
     normalized = budget_parser.normalize(text).replace("٬", ",").replace("٫", ".")
     if _PROMISE.search(normalized.lower()):
-        return None
+        return "profit promise"
     for match in _OFFER_REF.finditer(normalized):
         if not 1 <= int(match.group(1)) <= offer_count:
-            return None
+            return f"unknown offer {match.group(1)}"
     allowed = _allowed_numbers(context)
     for token in _NUMBER.findall(normalized):
         number = budget_parser.to_decimal(token)
         if number is None or number not in allowed:
-            return None
-    return text
+            return f"number not in the context: {token}"
+    return None
 
 
 # ---------------------------------------------------------------- rule-based answer
