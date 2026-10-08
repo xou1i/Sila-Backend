@@ -31,7 +31,8 @@ DEFAULT_BASE_URLS = {
 USER_AGENT = "sila-backend/1.0"
 
 DEFAULT_MODELS = {
-    "groq": "llama-3.3-70b-versatile",
+    # llama-3.3-70b-versatile was shut down on 2026-08-16; Groq's replacement
+    "groq": "openai/gpt-oss-120b",
     "gemini": "gemini-3.8-flash",
 }
 

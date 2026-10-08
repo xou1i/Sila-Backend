@@ -173,6 +173,16 @@ async def test_unsafe_model_answer_is_rejected(client, monkeypatch, text) -> Non
     assert body["engine"] == "rules" and body["answer"] != text
 
 
+async def test_rejection_reason_is_logged_without_the_reply(client, monkeypatch, caplog) -> None:
+    await _market(client)
+    investor = await make_user(client)
+    _use_groq(monkeypatch, reply=_choice("اشتري هسة بسعر 123456 دينار للغرام."))
+    with caplog.at_level(logging.WARNING):
+        await _ask(client, investor, "شنو أشتري؟", "1500000")
+    assert "failed the output check (number not in the context: 123456)" in caplog.text
+    assert "اشتري هسة" not in caplog.text
+
+
 async def test_negated_promise_is_allowed(client, monkeypatch) -> None:
     await _market(client)
     investor = await make_user(client)
