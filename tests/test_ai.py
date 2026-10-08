@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import text
 
 from app.core.config import get_settings
-from app.core.money import compute_breakdown
+from app.core.money import compute_breakdown, format_iqd
 from app.modules.ai import llm
 from tests.conftest import make_listing, make_user
 
@@ -30,6 +30,8 @@ async def test_match_ranks_active_listings_within_budget(client) -> None:
     assert ids[0] == l24["id"]  # low risk prefers 24K
     for res in body["results"]:
         assert res["reason"]
+        # The total in the text is human readable, not the raw decimal string
+        assert format_iqd(Decimal(res["estimated_total_iqd"])) in res["reason"]
         assert Decimal(res["estimated_total_iqd"]) <= Decimal("1500000")
         b = compute_breakdown(
             Decimal(res["suggested_weight_grams"]), Decimal(res["execution_price_per_gram"])

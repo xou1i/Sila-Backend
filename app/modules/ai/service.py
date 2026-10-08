@@ -15,6 +15,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError, ErrorCode
 from app.core.money import (
     compute_breakdown,
+    format_iqd,
     karat_price,
     max_affordable_grams,
     round_money,
@@ -105,9 +106,9 @@ def match(db: Session, investor: User, budget: Decimal) -> MatchOut:
         pct = round_money(usage * 100)
         capped = grams == listing.available_weight_grams
         reason = f"{_KARAT_NOTE[listing.karat]} ويناسب ملف مخاطرة {_RISK_AR[risk]}. " + (
-            f"الكمية المتاحة كاملة ({grams} غرام) ضمن ميزانيتك بإجمالي {total} دينار."
+            f"الكمية المتاحة كاملة ({grams} غرام) ضمن ميزانيتك بإجمالي {format_iqd(total)} دينار."
             if capped
-            else f"يمكنك شراء {grams} غرام بإجمالي {total} دينار ({pct}% من ميزانيتك)."
+            else f"يمكنك شراء {grams} غرام بإجمالي {format_iqd(total)} دينار ({pct}% من ميزانيتك)."
         )
         scored.append((score, listing, grams, price, reason))
 

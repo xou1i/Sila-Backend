@@ -1754,6 +1754,10 @@
             "type": "string",
             "title": "Label"
           },
+          "label_ar": {
+            "type": "string",
+            "title": "Label Ar"
+          },
           "min_grams": {
             "anyOf": [
               {
@@ -1787,6 +1791,7 @@
         "type": "object",
         "required": [
           "label",
+          "label_ar",
           "min_grams",
           "max_grams",
           "rate"
