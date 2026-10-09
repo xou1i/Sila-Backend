@@ -108,6 +108,19 @@ async def test_bad_follow_ups_are_dropped_one_by_one(client, monkeypatch) -> Non
 
 
 @pytest.mark.anyio
+async def test_follow_ups_that_need_a_calculation_are_dropped(client, monkeypatch) -> None:
+    investor = await _investor_and_market(client)
+    follow_ups = [
+        "كم جرام أقدر أشتري بميزانيتي؟",
+        "كم راح أربح بعد سنة؟",
+        "شنو الفرق بين العيارات؟",
+    ]
+    _use_model(monkeypatch, _json_reply("سعر الذهب ممكن ينزل.", True, follow_ups))
+    body = await _ask(client, investor, "هل هسة وقت مناسب للشراء؟")
+    assert body["follow_up_questions"] == ["شنو الفرق بين العيارات؟"]
+
+
+@pytest.mark.anyio
 async def test_no_valid_follow_up_keeps_the_rule_based_ones(client, monkeypatch) -> None:
     investor = await _investor_and_market(client)
     _use_model(monkeypatch, _json_reply("سعر الذهب ممكن ينزل.", True, ["هل أشتري 7777 غرام؟"]))
@@ -136,6 +149,10 @@ async def test_broken_json_falls_back_to_rules(client, monkeypatch) -> None:
         ("السعر — مستقر", "السعر مستقر"),
         ("تغيّر بنسبة -0.57% اليوم", "تغيّر بنسبة −0.57% اليوم"),
         ("**مهم**: الذهب", "مهم: الذهب"),
+        ("ميزانية 2,000,000 IQD", "ميزانية 2,000,000 دينار"),
+        ("سعر الجرام والجرامات", "سعر الغرام والغرامات"),
+        ("ذهب 24 قيراط", "ذهب عيار 24"),
+        ("وزّع على كارات مختلفة بكل قيراط", "وزّع على عيارات مختلفة بكل عيار"),
     ],
 )
 def test_clean_text(raw: str, clean: str) -> None:

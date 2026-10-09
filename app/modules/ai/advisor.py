@@ -94,6 +94,9 @@ _OFFER_REF = re.compile(r"العرض\s*(?:رقم\s*)?(\d+)")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 _ARABIC_LETTER = re.compile(r"[ء-ي]")
 _LATIN_LETTER = re.compile(r"[A-Za-z]")
+_ASKS_TO_CALCULATE = re.compile(
+    r"كم\s+(?:غرام|عيار|دينار|يكلف|تكلف|اربح|راح\s+اربح|راح\s+يصير|يصير\s+سعر)"
+)
 # Hyphens and dashes (the UI Kit bans them in copy); U+2212 MINUS SIGN is kept
 _DASHES = re.compile(r"[\u2010-\u2015]")
 
@@ -271,6 +274,11 @@ def clean_text(text: str) -> str:
     text = re.sub(r"(^|\s)-(?=\d)", "\\1\u2212", text)
     text = _DASHES.sub(" ", text).replace("-", " ")
     text = re.sub(r"(منصة\s+)سلة", r"\1صِلة", text).replace("سِلة", "صِلة")
+    # The platform's words: دينار, غرام, عيار (models also write IQD, جرام, قيراط, كارات)
+    text = re.sub(r"\bIQD\b", "دينار", text)
+    text = text.replace("جرام", "غرام")
+    text = re.sub(r"(\d+)\s*قيراط", r"عيار \1", text).replace("قيراط", "عيار")
+    text = text.replace("كارات", "عيارات")
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -321,6 +329,10 @@ def check_follow_ups(questions: list[str], context: dict[str, Any], offer_count:
     for raw in questions:
         text = clean_text(raw)
         if len(text) > MAX_FOLLOW_UP_CHARS or text in kept:
+            continue
+        # A question only a calculation could answer ("كم غرام أقدر أشتري؟"): the model may not
+        # calculate, so it must not suggest one
+        if _ASKS_TO_CALCULATE.search(budget_parser.normalize(text)):
             continue
         if _rejection(text, context, offer_count) is None:
             kept.append(text)
