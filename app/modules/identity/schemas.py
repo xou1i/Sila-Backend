@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
@@ -18,7 +19,8 @@ def _check_password_bytes(value: str) -> str:
 
 
 class SignupIn(BaseModel):
-    role: UserRole
+    # Admins are created by a server command only, never through signup
+    role: Literal[UserRole.investor, UserRole.seller]
     full_name: str = Field(min_length=2, max_length=255, examples=["زينب الموسوي"])
     email: EmailStr = Field(examples=["zainab@example.iq"])
     password: str = Field(min_length=8, max_length=72, examples=["Sila@2026"])
@@ -69,6 +71,9 @@ class UserOut(ORMModel):
     is_premium_active: bool = Field(
         description="subscription_expiry_date > now(); use this, not subscription_tier, to gate UI"
     )
+    must_change_password: bool = Field(
+        description="Signed in with a temporary password from an admin: ask for a new one first"
+    )
     created_at: datetime
 
 
@@ -81,6 +86,23 @@ class TokenOut(BaseModel):
 
 class LoginOut(TokenOut):
     user: UserOut
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=72)
+    new_password: str = Field(min_length=8, max_length=72)
+
+    _password = field_validator("new_password")(_check_password_bytes)
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+    _email = field_validator("email", mode="before")(_normalize_email)
+
+
+class MessageOut(BaseModel):
+    message: str
 
 
 class KycOut(BaseModel):

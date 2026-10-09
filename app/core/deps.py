@@ -17,7 +17,22 @@ bearer = HTTPBearer(auto_error=False, description="Access token from /api/auth/l
 _ROLE_MESSAGES = {
     UserRole.investor: "هذه العملية متاحة للمستثمرين فقط",
     UserRole.seller: "هذه العملية متاحة للبائعين فقط",
+    UserRole.admin: "هذه العملية متاحة لإدارة المنصة فقط",
 }
+
+
+def password_version(user: User) -> int:
+    """Milliseconds of the last password change (0 = never changed)."""
+    changed = user.password_changed_at
+    return int(changed.timestamp() * 1000) if changed else 0
+
+
+def token_still_valid(user: User, claims: dict) -> bool:
+    """A deactivated account, or a token issued for an earlier password, is refused. The exact
+    version (not the issue time) is compared, so a token from the same second still fails."""
+    if not user.is_active:
+        return False
+    return int(claims.get("pwv", 0)) == password_version(user)
 
 
 def _user_from_credentials(
@@ -32,7 +47,10 @@ def _user_from_credentials(
         user_id = uuid.UUID(claims["sub"])
     except ValueError:
         return None
-    return db.get(User, user_id)
+    user = db.get(User, user_id)
+    if user is None or not token_still_valid(user, claims):
+        return None
+    return user
 
 
 def get_current_user(
@@ -63,3 +81,4 @@ def require_role(role: UserRole) -> Callable[..., User]:
 
 require_investor = require_role(UserRole.investor)
 require_seller = require_role(UserRole.seller)
+require_admin = require_role(UserRole.admin)

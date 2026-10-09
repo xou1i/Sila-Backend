@@ -42,6 +42,7 @@ from app.modules.ai.schemas import (
 from app.modules.listings import service as listings
 from app.modules.market import service as market
 from app.modules.orders.schemas import RiskInsightOut
+from app.modules.ownership import service as ownership
 
 _MAX_RESULTS = 5
 _RISK_AR = {RiskProfile.low: "منخفض", RiskProfile.medium: "متوسط", RiskProfile.high: "مرتفع"}
@@ -87,7 +88,12 @@ def match(db: Session, investor: User, budget: Decimal) -> MatchOut:
     active = db.scalars(
         select(AssetListing)
         .options(joinedload(AssetListing.seller))
-        .where(AssetListing.status == ListingStatus.active, AssetListing.available_weight_grams > 0)
+        .where(
+            AssetListing.status == ListingStatus.active,
+            AssetListing.available_weight_grams > 0,
+            # Never suggest an investor's own resale listing back to them
+            AssetListing.seller_id != investor.id,
+        )
     ).all()
 
     scored: list[tuple[Decimal, AssetListing, Decimal, Decimal, str]] = []
@@ -269,12 +275,19 @@ def insights(db: Session, investor: User) -> InsightsOut:
         .group_by(AssetListing.karat)
         .order_by(AssetListing.karat.desc())
     ).all()
-    by_karat = [
-        KaratHolding(karat=k, grams=g, current_value_iqd=round_money(g * karat_price(price_24k, k)))
-        for k, g, _, _ in rows
-    ]
+    # Grams still held per karat (bought minus resold, Workflow 09). The cost of what is held is
+    # the average cost of that karat: paid × held / bought.
+    held = ownership.holdings_by_karat(db, investor.id)
+    by_karat: list[KaratHolding] = []
+    total_paid = Decimal("0")
+    for k, bought, paid, _ in rows:
+        grams = held[k]
+        if grams <= 0:
+            continue
+        value_k = round_money(grams * karat_price(price_24k, k))
+        by_karat.append(KaratHolding(karat=k, grams=grams, current_value_iqd=value_k))
+        total_paid += round_money(paid * grams / bought)
     total_grams = sum((h.grams for h in by_karat), Decimal("0"))
-    total_paid = sum((r[2] for r in rows), Decimal("0"))
     value = sum((h.current_value_iqd for h in by_karat), Decimal("0"))
     pnl = value - total_paid
     pnl_pct = market.pct_change(total_paid, value) if total_paid > 0 else None

@@ -35,7 +35,9 @@ def burn_password_check(password: str) -> None:
     verify_password(password, _dummy_hash())
 
 
-def create_token(user_id: uuid.UUID, role: str, token_type: TokenType) -> tuple[str, int]:
+def create_token(
+    user_id: uuid.UUID, role: str, token_type: TokenType, password_version: int = 0
+) -> tuple[str, int]:
     settings = get_settings()
     ttl = (
         timedelta(minutes=settings.access_token_ttl_minutes)
@@ -50,6 +52,8 @@ def create_token(user_id: uuid.UUID, role: str, token_type: TokenType) -> tuple[
         "iat": now,
         "exp": now + ttl,
         "jti": uuid.uuid4().hex,
+        # Must equal the account's current password version (app.core.deps.token_still_valid)
+        "pwv": password_version,
     }
     token = jwt.encode(claims, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return token, int(ttl.total_seconds())

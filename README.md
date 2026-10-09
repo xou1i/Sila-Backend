@@ -27,6 +27,8 @@ Open `http://localhost:8010/docs`. No local PostgreSQL? `docker compose up -d db
 
 Seed demo data: `python -m app.scripts.seed` (refuses to run on a non-empty DB; `--reset` wipes and re-seeds).
 
+Create the platform admin (admins can never sign up through the API): `python -m app.scripts.create_admin admin@example.iq "إدارة صِلة"`. It prints a random password once. On Railway, run it from the service shell (or `railway run`).
+
 ### Demo accounts (password `Sila@2026`)
 | Email | Role | Use it to demo |
 |---|---|---|

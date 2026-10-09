@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
+from app.modules.alerts import service as alerts
 from app.modules.market import service as market
 from app.modules.subscription import service as subscription
 
@@ -16,9 +17,19 @@ logger = logging.getLogger("sila.jobs")
 def refresh_prices_job() -> None:
     with SessionLocal() as db:
         try:
-            market.refresh_prices(db)
+            snapshot = market.refresh_prices(db)
         except Exception:
             logger.exception("price refresh job failed")
+            return
+        if snapshot is None:
+            return
+        # Premium price alerts are checked against every fresh price
+        try:
+            fired = alerts.check_alerts(db, snapshot)
+            if fired:
+                logger.info("price alerts: %d fired", fired)
+        except Exception:
+            logger.exception("price alert check failed")
 
 
 def expire_subscriptions_job() -> None:
