@@ -128,7 +128,7 @@ Listing card (`ListingOut`):
 | `POST /api/ai/risk-analysis` | `{asset_id, weight_grams}` | `{level: low|medium|high, insight, signals[], engine, asset_id, purchased_weight_grams}` |
 | `GET /api/ai/insights` | — | Premium only: `{engine, alerts[], market:{…trend…}, portfolio:{total_grams, total_paid_iqd, current_value_iqd, unrealized_pnl_iqd, unrealized_pnl_pct, by_karat[]}}` |
 
-| `POST /api/ai/advisor` | `{question (1–500 chars), budget_iqd?}` | `{engine, answer, budget, suggestions[], market_snapshot:{price_24k_per_gram, change_24h_pct, updated_at, is_stale}, disclaimer}`. Free. See below. |
+| `POST /api/ai/advisor` | `{question (1–500 chars), budget_iqd?}` | `{engine, answer, show_figures, budget, holdings_grams, suggestions[], market_snapshot:{price_24k_per_gram, change_24h_pct, updated_at, is_stale}, follow_up_questions[], disclaimer}`. Free. See below. |
 
 `engine` is `"rules"` (deterministic) or `"llm"` (text rewritten by Claude). The numbers are identical either way.
 
@@ -143,6 +143,9 @@ A free question in Arabic ("عندي مليونين، شنو أحسن شي أش�
   | `question_words` | words: `مليونين`, `نص مليون`, `3 ملايين`, `500 ألف`; or two different amounts | **`false`** | **empty**: show "فهمت ميزانيتك X، صح؟" and, on yes, resend the same question with `budget_iqd` |
   - `budget: null` → the answer covers the market only; offer quick budget choices and resend with `budget_iqd`.
 - **`engine`**: `"llm"` when the configured model worded the answer, `"rules"` otherwise (no provider, any provider failure, or a reply rejected by the check: a number not in the data, an offer that does not exist, a profit promise, a non-Arabic reply). The UI may show that the answer is simplified.
+- **`answer`** is plain Arabic text (no markdown, no dashes, the brand written صِلة). It does not repeat the live figures.
+- **`show_figures`**: `true` when the question is about prices, money, the budget or holdings (always `true` with a budget). Show `market_snapshot`, the budget and `holdings_grams` in their own panel under the answer; hide it for unrelated questions.
+- **`follow_up_questions`**: up to 3 short questions fitted to this question, budget state and risk profile. Offer them as the next quick questions. They pass the same check as the answer (a failing one is dropped); rule-based ones are returned when the model is not used.
 - **`disclaimer`** is always present: always show it under the answer.
 - Only anonymous data reaches the model (prices, risk profile, holdings in grams, budget, offers numbered 1–5 without ids or seller names). E-mails and phone numbers are removed from the question. Questions are independent: send no history.
 - Errors: `403 FORBIDDEN` (not an investor), `422 VALIDATION_ERROR`, `429 RATE_LIMITED` (shares the AI limit), `503 AI_UNAVAILABLE` (no price data at all).

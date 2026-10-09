@@ -1957,7 +1957,13 @@
           },
           "answer": {
             "type": "string",
-            "title": "Answer"
+            "title": "Answer",
+            "description": "Plain Arabic text, no markdown and no dashes"
+          },
+          "show_figures": {
+            "type": "boolean",
+            "title": "Show Figures",
+            "description": "The question is about prices, money, the budget or holdings: show the figures (market_snapshot, budget, holdings_grams) in their own panel under the answer"
           },
           "budget": {
             "anyOf": [
@@ -1970,6 +1976,12 @@
             ],
             "description": "null when no budget was given or found"
           },
+          "holdings_grams": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Holdings Grams",
+            "description": "The investor's own verified balance"
+          },
           "suggestions": {
             "items": {
               "$ref": "#/components/schemas/MatchResult"
@@ -1981,6 +1993,14 @@
           "market_snapshot": {
             "$ref": "#/components/schemas/AdvisorMarket"
           },
+          "follow_up_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Follow Up Questions",
+            "description": "Up to 3 questions to offer next, fitted to this question (checked like the answer; rule-based ones when the model is not used)"
+          },
           "disclaimer": {
             "type": "string",
             "title": "Disclaimer",
@@ -1991,9 +2011,12 @@
         "required": [
           "engine",
           "answer",
+          "show_figures",
           "budget",
+          "holdings_grams",
           "suggestions",
           "market_snapshot",
+          "follow_up_questions",
           "disclaimer"
         ],
         "title": "AdvisorOut"

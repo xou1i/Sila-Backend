@@ -2,9 +2,12 @@
 
 It extends the AI engine instead of running beside it: suggestions and every number come from
 service.match() and the market service, exactly as in /api/ai/match. The model (providers.py)
-only words an answer from that context, and the reply is checked before use: an unknown number,
-an offer that does not exist, a profit promise or a non-Arabic reply all fall back to the
-rule-based answer (engine "rules"). Only anonymous data leaves the server.
+only words an answer from that context, as JSON: the answer, whether the question is about
+money (the client then shows the live figures in their own panel) and three follow-up
+questions. The reply is checked before use: an unknown number, an offer that does not exist, a
+profit promise or a non-Arabic answer fall back to the rule-based answer (engine "rules"); a
+follow-up question that fails the same check is dropped on its own. Only anonymous data leaves
+the server.
 """
 
 import json
@@ -18,7 +21,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.money import SUPPORTED_KARATS, karat_price
+from app.core.money import MILLIGRAM, SUPPORTED_KARATS, karat_price
 from app.models import FractionalOwnershipRecord, RiskProfile, User
 from app.modules.ai import budget as budget_parser
 from app.modules.ai import providers, service
@@ -38,6 +41,8 @@ SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "advisor_system.md").read_t
     encoding="utf-8"
 )
 MAX_ANSWER_CHARS = 1200
+MAX_FOLLOW_UPS = 3
+MAX_FOLLOW_UP_CHARS = 90
 
 _RISK_TIP = {
     RiskProfile.low: ("ملفك منخفض المخاطرة، فالأفضل تبدي بكمية صغيرة وتقسّم شراءك على أكثر من مرة."),
@@ -47,6 +52,34 @@ _RISK_TIP = {
     RiskProfile.high: "ملفك يقبل مخاطرة أعلى، بس حتى هيج لا تحط كل ميزانيتك بصفقة وحدة.",
 }
 _REMINDER = "تذكّر إن سعر الذهب ممكن ينزل مثل ما يصعد."
+_OFF_TOPIC = (
+    "هذا السؤال برا مواضيع الاستثمار بالذهب على صِلة. "
+    "أكدر أساعدك بأسعار الذهب اليوم، وبعروض تناسب ميزانيتك وملفك الاستثماري."
+)
+
+# Follow-up questions when the model is not used (or its suggestions fail the check)
+_RULES_FOLLOW_UPS = {
+    "off_topic": ["شنو أحسن عرض لميزانيتي؟", "هل هسة وقت مناسب للشراء؟", "شنو الفرق بين العيارات؟"],
+    "missing": [
+        "شنو الفرق بين عيار 21 وعيار 24؟",
+        "شلون تنحسب العمولة بصِلة؟",
+        "أشتري مرة وحدة لو على دفعات؟",
+    ],
+    "needs_confirmation": ["شنو الفرق بين عيار 21 وعيار 24؟", "شلون تنحسب العمولة بصِلة؟"],
+    "offers": [
+        "ليش العرض 1 هو الأنسب إلي؟",
+        "أقسّم شرائي على أكثر من مرة؟",
+        "شنو الفرق بين عيار 21 وعيار 24؟",
+    ],
+    "no_offers": ["شلون أبدي بميزانية صغيرة؟", "شنو العيار اللي يعطيني غرامات أكثر؟"],
+}
+
+# A question about money, prices or holdings: the client shows the figures panel. Matched on
+# normalized text (one alef), used when the model gives no answer of its own.
+_MONEY_TOPIC = re.compile(
+    r"سعر|اسعار|ذهب|عيار|غرام|شراء|اشتري|اشتر|بيع|استثمار|استثمر|ميزاني|مبلغ|فلوس|دينار"
+    r"|رصيد|محفظ|ربح|خسار|عرض|عروض|سوق|مليون|ملايين|الف|عمول|ادخار|انوع|تنويع|وقت مناسب"
+)
 
 # Promises the answer must never make; negated forms ("مو مضمون") stay allowed
 _PROMISE = re.compile(
@@ -61,6 +94,8 @@ _OFFER_REF = re.compile(r"العرض\s*(?:رقم\s*)?(\d+)")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 _ARABIC_LETTER = re.compile(r"[ء-ي]")
 _LATIN_LETTER = re.compile(r"[A-Za-z]")
+# Hyphens and dashes (the UI Kit bans them in copy); U+2212 MINUS SIGN is kept
+_DASHES = re.compile(r"[\u2010-\u2015]")
 
 
 def advise(db: Session, investor: User, body: AdvisorIn) -> AdvisorOut:
@@ -82,25 +117,40 @@ def advise(db: Session, investor: User, body: AdvisorIn) -> AdvisorOut:
             FractionalOwnershipRecord.investor_id == investor.id
         )
     ) or Decimal("0")
+    holdings = holdings.quantize(MILLIGRAM)  # canonical grams, like every weight in the API
     context = build_context(
         snapshot.gold_24k_iqd_per_gram, change_24h, risk, holdings, budget, suggestions
     )
-    rules_answer = _rules_answer(
-        snapshot.gold_24k_iqd_per_gram, change_24h, risk, budget, suggestions, no_match_message
+    money_topic = budget is not None or bool(
+        _MONEY_TOPIC.search(budget_parser.normalize(body.question))
     )
+    state = _state(money_topic, budget, suggestions)
 
-    answer, engine = rules_answer, "rules"
+    answer = _rules_answer(change_24h, risk, budget, suggestions, no_match_message, money_topic)
+    engine = "rules"
+    show_figures = money_topic
+    follow_ups = list(_RULES_FOLLOW_UPS[state])
+
     question = budget_parser.redact_personal(body.question)
     reply = providers.complete(SYSTEM_PROMPT, _user_message(context, question))
-    if reply is not None:
-        checked = check_answer(reply, context, len(suggestions))
+    parsed = parse_reply(reply) if reply is not None else None
+    if parsed is not None:
+        checked = check_answer(parsed["answer"], context, len(suggestions))
         if checked is not None:
             answer, engine = checked, "llm"
+            # A budget always means money; otherwise the model's own reading wins
+            if budget is None and isinstance(parsed["show_figures"], bool):
+                show_figures = parsed["show_figures"]
+            model_follow_ups = check_follow_ups(parsed["follow_ups"], context, len(suggestions))
+            if model_follow_ups:
+                follow_ups = model_follow_ups
 
     return AdvisorOut(
         engine=engine,
         answer=answer,
+        show_figures=show_figures,
         budget=budget,
+        holdings_grams=holdings,
         suggestions=suggestions,
         market_snapshot=AdvisorMarket(
             price_24k_per_gram=snapshot.gold_24k_iqd_per_gram,
@@ -108,6 +158,7 @@ def advise(db: Session, investor: User, body: AdvisorIn) -> AdvisorOut:
             updated_at=snapshot.fetched_at,
             is_stale=market.is_stale(snapshot),
         ),
+        follow_up_questions=follow_ups,
         disclaimer=DISCLAIMER,
     )
 
@@ -122,6 +173,16 @@ def _understand_budget(body: AdvisorIn) -> AdvisorBudget | None:
     return AdvisorBudget(
         amount_iqd=guess.amount, source=guess.source, confirmed=guess.source == "question_digits"
     )
+
+
+def _state(money_topic: bool, budget: AdvisorBudget | None, suggestions: list[MatchResult]) -> str:
+    if not money_topic:
+        return "off_topic"
+    if budget is None:
+        return "missing"
+    if not budget.confirmed:
+        return "needs_confirmation"
+    return "offers" if suggestions else "no_offers"
 
 
 # ---------------------------------------------------------------- what the model sees
@@ -177,6 +238,42 @@ def _user_message(context: dict[str, Any], question: str) -> str:
     return f"<context>\n{facts}\n</context>\n\n<question>\n{question}\n</question>"
 
 
+# ---------------------------------------------------------------- reading the reply
+
+
+def parse_reply(reply: str) -> dict[str, Any] | None:
+    """{answer, show_figures, follow_ups} from the model's JSON. A plain-text reply is taken as
+    the answer alone; broken JSON is rejected (logged)."""
+    start, end = reply.find("{"), reply.rfind("}")
+    if start == -1 or end <= start:
+        return {"answer": reply, "show_figures": None, "follow_ups": []}
+    try:
+        data = json.loads(reply[start : end + 1])
+    except ValueError:
+        data = None
+    if not isinstance(data, dict) or not isinstance(data.get("answer"), str):
+        logger.warning("Advisor reply is not the expected JSON; using rules")
+        return None
+    follow_ups = data.get("follow_up_questions")
+    return {
+        "answer": data["answer"],
+        "show_figures": data.get("show_figures"),
+        "follow_ups": [q for q in follow_ups if isinstance(q, str)]
+        if isinstance(follow_ups, list)
+        else [],
+    }
+
+
+def clean_text(text: str) -> str:
+    """Plain text in the platform's spelling: no markdown, no dashes, the brand as صِلة."""
+    text = re.sub(r"[*#`_]+", "", text)
+    # A hyphen right before a number after a space is a minus sign; any other is a separator
+    text = re.sub(r"(^|\s)-(?=\d)", "\\1\u2212", text)
+    text = _DASHES.sub(" ", text).replace("-", " ")
+    text = re.sub(r"(منصة\s+)سلة", r"\1صِلة", text).replace("سِلة", "صِلة")
+    return re.sub(r"\s+", " ", text).strip()
+
+
 # ---------------------------------------------------------------- output check
 
 
@@ -209,14 +306,27 @@ def _allowed_numbers(context: dict[str, Any]) -> set[Decimal]:
 
 def check_answer(reply: str, context: dict[str, Any], offer_count: int) -> str | None:
     """The cleaned answer, or None when it must not be shown (the reason is logged)."""
-    text = re.sub(r"[*#`_]+", "", reply)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = clean_text(reply)
     reason = _rejection(text, context, offer_count)
     if reason is not None:
         # The reason only, never the reply or the question
         logger.warning("Advisor reply failed the output check (%s); using rules", reason)
         return None
     return text
+
+
+def check_follow_ups(questions: list[str], context: dict[str, Any], offer_count: int) -> list[str]:
+    """The model's follow-up questions that pass the same check, short and distinct (max 3)."""
+    kept: list[str] = []
+    for raw in questions:
+        text = clean_text(raw)
+        if len(text) > MAX_FOLLOW_UP_CHARS or text in kept:
+            continue
+        if _rejection(text, context, offer_count) is None:
+            kept.append(text)
+        if len(kept) == MAX_FOLLOW_UPS:
+            break
+    return kept
 
 
 def _rejection(text: str, context: dict[str, Any], offer_count: int) -> str | None:
@@ -253,21 +363,22 @@ def _fmt_grams(value: Decimal) -> str:
 
 
 def _rules_answer(
-    price_24k: Decimal,
     change_24h: Decimal | None,
     risk: RiskProfile,
     budget: AdvisorBudget | None,
     suggestions: list[MatchResult],
     no_match_message: str | None,
+    money_topic: bool,
 ) -> str:
-    market_line = f"سعر غرام الذهب عيار 24 هسة {_fmt_iqd(price_24k)} دينار"
+    if not money_topic:
+        return _OFF_TOPIC
+    # The live price and the 24h change sit in the figures panel: the text gives the direction
     if change_24h is not None and change_24h > 0:
-        market_line += f"، وارتفع {change_24h}% خلال 24 ساعة."
+        parts = ["الذهب ارتفع خلال آخر 24 ساعة."]
     elif change_24h is not None and change_24h < 0:
-        market_line += f"، ونزل {abs(change_24h)}% خلال 24 ساعة."
+        parts = ["الذهب نزل خلال آخر 24 ساعة."]
     else:
-        market_line += "."
-    parts = [market_line]
+        parts = ["سعر الذهب مستقر خلال آخر 24 ساعة."]
 
     if budget is None:
         parts.append("حتى أقترح عليك عروض تناسبك، اختار ميزانيتك أو اكتبها.")

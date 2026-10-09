@@ -113,10 +113,19 @@ class AdvisorMarket(BaseModel):
 
 class AdvisorOut(BaseModel):
     engine: Engine = Field(description="llm = worded by the model; rules = rule-based answer")
-    answer: str
+    answer: str = Field(description="Plain Arabic text, no markdown and no dashes")
+    show_figures: bool = Field(
+        description="The question is about prices, money, the budget or holdings: show the "
+        "figures (market_snapshot, budget, holdings_grams) in their own panel under the answer"
+    )
     budget: AdvisorBudget | None = Field(description="null when no budget was given or found")
+    holdings_grams: Decimal = Field(description="The investor's own verified balance")
     suggestions: list[MatchResult] = Field(
         description="From the rule-based matcher (same as /api/ai/match), never from the model"
     )
     market_snapshot: AdvisorMarket
+    follow_up_questions: list[str] = Field(
+        description="Up to 3 questions to offer next, fitted to this question (checked like the "
+        "answer; rule-based ones when the model is not used)"
+    )
     disclaimer: str = Field(description="Always shown under the answer")
