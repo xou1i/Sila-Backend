@@ -28,7 +28,7 @@ from app.modules.identity.schemas import LoginOut, SignupIn, TokenOut, UserOut
 from app.modules.notifications import service as notifications
 
 RESET_REQUEST_REPLY = (
-    "إذا الإيميل مسجل عدنا، طلبك وصل لإدارة صِلة، وراح يتواصلون وياك بكلمة سر مؤقتة."
+    "إذا البريد الإلكتروني مسجل عدنا، طلبك وصل لإدارة صِلة، وراح يتواصلون وياك بكلمة مرور مؤقتة."
 )
 
 
@@ -110,9 +110,9 @@ def set_password(user: User, new_password: str, *, temporary: bool) -> None:
 
 def change_password(db: Session, user: User, current: str, new: str) -> LoginOut:
     if not verify_password(current, user.password_hash):
-        raise AppError(ErrorCode.INVALID_CREDENTIALS, "كلمة السر الحالية غير صحيحة")
+        raise AppError(ErrorCode.INVALID_CREDENTIALS, "كلمة المرور الحالية غير صحيحة")
     if current == new:
-        raise AppError(ErrorCode.VALIDATION_ERROR, "اختار كلمة سر جديدة تختلف عن الحالية")
+        raise AppError(ErrorCode.VALIDATION_ERROR, "اختار كلمة مرور جديدة تختلف عن الحالية")
     set_password(user, new, temporary=False)
     audit(db, "password_changed", actor_id=user.id, entity_type="user", entity_id=user.id)
     db.commit()
@@ -136,8 +136,8 @@ def forgot_password(db: Session, email: str) -> str:
             notifications.notify_admins(
                 db,
                 "password_reset_request",
-                "طلب استرجاع كلمة سر",
-                f"{user.full_name} ({email}) طلب كلمة سر جديدة.",
+                "طلب استرجاع كلمة مرور",
+                f"{user.full_name} ({email}) طلب كلمة مرور جديدة.",
                 "/app/admin/password-requests",
             )
         db.commit()

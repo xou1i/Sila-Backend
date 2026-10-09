@@ -250,8 +250,8 @@ def reset_password(db: Session, admin: User, user_id: uuid.UUID) -> TempPassword
         db,
         user.id,
         "password_reset",
-        "كلمة سر جديدة",
-        "إدارة صِلة أصدرت إلك كلمة سر مؤقتة. غيّرها أول ما تدخل.",
+        "كلمة مرور جديدة",
+        "إدارة صِلة أصدرت إلك كلمة مرور مؤقتة. غيّرها أول ما تدخل.",
         "/app/settings",
     )
     db.commit()
