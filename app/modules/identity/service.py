@@ -138,7 +138,7 @@ def forgot_password(db: Session, email: str) -> str:
                 "password_reset_request",
                 "طلب استرجاع كلمة سر",
                 f"{user.full_name} ({email}) طلب كلمة سر جديدة.",
-                "/admin/password-requests",
+                "/app/admin/password-requests",
             )
         db.commit()
     return RESET_REQUEST_REPLY
