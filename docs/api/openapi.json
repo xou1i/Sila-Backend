@@ -2552,7 +2552,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__interest__router__InterestOut"
+                  "$ref": "#/components/schemas/InterestReplyOut"
                 }
               }
             }
@@ -3403,7 +3403,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/app__modules__admin__service__InterestOut"
+                    "$ref": "#/components/schemas/InterestSignupOut"
                   },
                   "type": "array",
                   "title": "Response Interest Api Admin Interest Get"
@@ -4263,6 +4263,44 @@
           "asset_class"
         ],
         "title": "InterestIn"
+      },
+      "InterestReplyOut": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Same reply for a new or a repeated signup"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "InterestReplyOut"
+      },
+      "InterestSignupOut": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "asset_class": {
+            "type": "string",
+            "title": "Asset Class"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "asset_class",
+          "created_at"
+        ],
+        "title": "InterestSignupOut"
       },
       "KaratBalance": {
         "properties": {
@@ -6374,44 +6412,6 @@
           "type"
         ],
         "title": "ValidationError"
-      },
-      "app__modules__admin__service__InterestOut": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "asset_class": {
-            "type": "string",
-            "title": "Asset Class"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "asset_class",
-          "created_at"
-        ],
-        "title": "InterestOut"
-      },
-      "app__modules__interest__router__InterestOut": {
-        "properties": {
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "Same reply for a new or a repeated signup"
-          }
-        },
-        "type": "object",
-        "required": [
-          "message"
-        ],
-        "title": "InterestOut"
       }
     },
     "securitySchemes": {

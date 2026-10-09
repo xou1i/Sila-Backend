@@ -102,7 +102,7 @@ class AuditOut(BaseModel):
     created_at: datetime
 
 
-class InterestOut(BaseModel):
+class InterestSignupOut(BaseModel):
     email: str
     asset_class: str
     created_at: datetime
@@ -380,6 +380,6 @@ def list_audit(db: Session, event_type: str | None, limit: int, offset: int) -> 
     )
 
 
-def list_interest(db: Session) -> list[InterestOut]:
+def list_interest(db: Session) -> list[InterestSignupOut]:
     rows = db.scalars(select(InterestSignup).order_by(InterestSignup.created_at.desc())).all()
-    return [InterestOut.model_validate(r, from_attributes=True) for r in rows]
+    return [InterestSignupOut.model_validate(r, from_attributes=True) for r in rows]

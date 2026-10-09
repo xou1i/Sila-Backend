@@ -31,13 +31,13 @@ class InterestIn(BaseModel):
         return value.strip().lower() if isinstance(value, str) else value
 
 
-class InterestOut(BaseModel):
+class InterestReplyOut(BaseModel):
     message: str = Field(description="Same reply for a new or a repeated signup")
 
 
 @router.post(
     "",
-    response_model=InterestOut,
+    response_model=InterestReplyOut,
     status_code=status.HTTP_202_ACCEPTED,
     responses=error_responses(422, 429),
     dependencies=[rate_limit("login")],
@@ -47,7 +47,7 @@ def register_interest(
     body: InterestIn,
     user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
-) -> InterestOut:
+) -> InterestReplyOut:
     # Idempotent: one row per (email, asset class), a repeat changes nothing
     db.execute(
         insert(InterestSignup)
@@ -55,4 +55,4 @@ def register_interest(
         .on_conflict_do_nothing(index_elements=["email", "asset_class"])
     )
     db.commit()
-    return InterestOut(message=THANKS[body.asset_class])
+    return InterestReplyOut(message=THANKS[body.asset_class])

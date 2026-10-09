@@ -14,7 +14,7 @@ from app.modules.admin.service import (
     AdminUserOut,
     AdminUserPatch,
     AuditOut,
-    InterestOut,
+    InterestSignupOut,
     OverviewOut,
     ResetRequestOut,
     ResetRequestPatch,
@@ -136,6 +136,6 @@ def audit_log(
     return service.list_audit(db, event_type, limit, offset)
 
 
-@router.get("/interest", response_model=list[InterestOut], summary="Waitlist signups")
-def interest(db: Session = Depends(get_db)) -> list[InterestOut]:
+@router.get("/interest", response_model=list[InterestSignupOut], summary="Waitlist signups")
+def interest(db: Session = Depends(get_db)) -> list[InterestSignupOut]:
     return service.list_interest(db)
