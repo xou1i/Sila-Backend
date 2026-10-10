@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
@@ -19,13 +19,14 @@ from app.models import (
     AssetListing,
     FractionalOwnershipRecord,
     ListingStatus,
+    ListingType,
     Transaction,
     User,
-    UserRole,
 )
 from app.modules.ai import service as ai
 from app.modules.listings import service as listings
 from app.modules.market import service as market
+from app.modules.notifications import service as notifications
 from app.modules.orders.schemas import (
     ConfirmIn,
     ConfirmOut,
@@ -41,7 +42,10 @@ logger = logging.getLogger("sila.orders")
 _AI_UNAVAILABLE_NOTE = "التحليل الذكي غير متاح حالياً"
 
 
-def _check_purchasable(listing: AssetListing, grams: Decimal) -> None:
+def _check_purchasable(listing: AssetListing, grams: Decimal, buyer: User) -> None:
+    # An investor cannot buy back their own resale listing (Workflow 09)
+    if listing.seller_id == buyer.id:
+        raise AppError(ErrorCode.FORBIDDEN, "هذا عرضك، ما تكدر تشتري منه")
     if listing.status != ListingStatus.active:
         raise AppError(ErrorCode.LISTING_NOT_ACTIVE)
     if grams > listing.available_weight_grams:
@@ -51,7 +55,7 @@ def _check_purchasable(listing: AssetListing, grams: Decimal) -> None:
 def preview(db: Session, investor: User, body: PreviewIn) -> PreviewOut:
     """Read-only: computes numbers and a signed quote. Reserves nothing, writes nothing."""
     listing = listings.get_listing(db, body.asset_id)
-    _check_purchasable(listing, body.purchased_weight_grams)
+    _check_purchasable(listing, body.purchased_weight_grams, investor)
     snapshot = market.require_snapshot(db)
     breakdown = compute_breakdown(
         body.purchased_weight_grams, karat_price(snapshot.gold_24k_iqd_per_gram, listing.karat)
@@ -142,7 +146,11 @@ def execute_purchase(
         db.rollback()
         return existing, None, listing, False
     # 3. Final checks at execution time.
-    _check_purchasable(listing, grams)
+    _check_purchasable(listing, grams, investor)
+    resale = listing.listing_type == ListingType.investor_resale
+    if resale:
+        # Both ownership records, in one fixed order (no deadlock between crossing resales)
+        ownership.lock_records(db, [investor.id, listing.seller_id])
     breakdown: Breakdown = compute_breakdown(grams, execution_price_per_gram)
     # 4. Decrement; auto sold_out at zero.
     listing.available_weight_grams -= grams
@@ -181,8 +189,21 @@ def execute_purchase(
             "listing_status_after": listing.status.value,
         },
     )
-    # 6. Upsert + re-sign the ownership record.
+    # 6. Transfer from the resale seller (verified, re-signed), then upsert + re-sign the buyer.
+    if resale:
+        ownership.remove_grams(
+            db, listing.seller_id, grams, {"transaction_id": tx.id, "resale_sold": True}
+        )
+        audit(
+            db,
+            "resale_payout",
+            actor_id=listing.seller_id,
+            entity_type="transaction",
+            entity_id=tx.id,
+            data={"amount_iqd": breakdown.principal_amount, "provider": "mock"},
+        )
     record = ownership.add_grams(db, investor.id, grams, {"transaction_id": tx.id})
+    _notify_parties(db, investor, listing, tx, resale)
     # 7. Commit everything at once.
     try:
         db.commit()
@@ -193,6 +214,38 @@ def execute_purchase(
             raise
         return existing, None, listings.get_listing(db, existing.asset_id), False
     return tx, record, listing, True
+
+
+def _notify_parties(
+    db: Session, buyer: User, listing: AssetListing, tx: Transaction, resale: bool
+) -> None:
+    grams = f"{tx.purchased_weight_grams.normalize():f}"
+    notifications.notify(
+        db,
+        buyer.id,
+        "purchase_completed",
+        "تمت عملية الشراء",
+        f"اشتريت {grams} غرام عيار {listing.karat}، وانضافت لرصيدك الموثّق.",
+        "/app/portfolio",
+    )
+    if resale:
+        notifications.notify(
+            db,
+            listing.seller_id,
+            "resale_sold",
+            "انباع جزء من عرضك",
+            f"انباع {grams} غرام عيار {listing.karat} من عرض إعادة البيع مالتك.",
+            "/app/portfolio",
+        )
+    else:
+        notifications.notify(
+            db,
+            listing.seller_id,
+            "listing_sold",
+            "عملية بيع جديدة",
+            f"انباع {grams} غرام عيار {listing.karat} من عرضك.",
+            "/app/sales",
+        )
 
 
 def confirm(
@@ -235,7 +288,8 @@ def _tx_out(tx: Transaction, listing: AssetListing, *, seller_view: bool) -> Tra
         id=tx.id,
         asset_id=tx.asset_id,
         karat=listing.karat,
-        seller_name=listing.seller.full_name,
+        side="sell" if seller_view else "buy",
+        seller_name=listings.seller_label(listing),
         buyer_ref=buyer_ref(tx.investor_id) if seller_view else None,
         purchased_weight_grams=tx.purchased_weight_grams,
         execution_price_per_gram=tx.execution_price_per_gram,
@@ -248,9 +302,12 @@ def _tx_out(tx: Transaction, listing: AssetListing, *, seller_view: bool) -> Tra
 
 
 def _visible_to(user: User):
-    if user.role == UserRole.investor:
-        return Transaction.investor_id == user.id
-    return AssetListing.seller_id == user.id
+    # Buyer of the transaction, or owner of the listing (a seller, or an investor's resale)
+    return or_(Transaction.investor_id == user.id, AssetListing.seller_id == user.id)
+
+
+def _is_sale(tx: Transaction, user: User) -> bool:
+    return tx.asset.seller_id == user.id
 
 
 def list_transactions(db: Session, user: User, limit: int, offset: int) -> Page[TransactionOut]:
@@ -263,9 +320,8 @@ def list_transactions(db: Session, user: User, limit: int, offset: int) -> Page[
         .limit(limit)
         .offset(offset)
     ).all()
-    seller_view = user.role == UserRole.seller
     return Page[TransactionOut](
-        items=[_tx_out(t, t.asset, seller_view=seller_view) for t in rows],
+        items=[_tx_out(t, t.asset, seller_view=_is_sale(t, user)) for t in rows],
         total=total,
         limit=limit,
         offset=offset,
@@ -281,4 +337,4 @@ def get_transaction(db: Session, user: User, tx_id: uuid.UUID) -> TransactionOut
     )
     if tx is None:  # non-parties get 404, not 403 (DECISIONS D-20)
         raise AppError(ErrorCode.NOT_FOUND, "العملية غير موجودة")
-    return _tx_out(tx, tx.asset, seller_view=user.role == UserRole.seller)
+    return _tx_out(tx, tx.asset, seller_view=_is_sale(tx, user))

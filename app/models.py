@@ -30,6 +30,8 @@ from app.core.db import Base
 class UserRole(StrEnum):
     investor = "investor"
     seller = "seller"
+    # Created by a server command only (app.scripts.create_admin), never by signup
+    admin = "admin"
 
 
 class RiskProfile(StrEnum):
@@ -47,6 +49,31 @@ class ListingStatus(StrEnum):
     active = "active"
     sold_out = "sold_out"
     suspended = "suspended"
+    # Investor resale only (Domain Model v4): withdrawn for good, unsold grams released
+    withdrawn = "withdrawn"
+
+
+class ListingType(StrEnum):
+    seller_listing = "seller_listing"
+    # Part of an investor's holdings offered on the market (Workflow 09)
+    investor_resale = "investor_resale"
+
+
+class AlertDirection(StrEnum):
+    above = "above"
+    below = "below"
+
+
+class AlertStatus(StrEnum):
+    active = "active"
+    triggered = "triggered"
+    cancelled = "cancelled"
+
+
+class ResetRequestStatus(StrEnum):
+    pending = "pending"
+    resolved = "resolved"
+    dismissed = "dismissed"
 
 
 def _pg_enum(enum_cls: type[StrEnum], name: str) -> Enum:
@@ -93,6 +120,16 @@ class User(Base):
         server_default=SubscriptionTier.free.value,
     )
     subscription_expiry_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A deactivated account cannot sign in, and its tokens stop working (admin action)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    # Set when an admin issues a temporary password: the user must choose a new one
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    # Tokens issued before this instant are rejected (sessions end on a password change)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _updated_at()
 
@@ -116,6 +153,12 @@ class AssetListing(Base):
     available_weight_grams: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     karat: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     base_price_per_gram: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    listing_type: Mapped[ListingType] = mapped_column(
+        _pg_enum(ListingType, "listing_type"),
+        nullable=False,
+        default=ListingType.seller_listing,
+        server_default=ListingType.seller_listing.value,
+    )
     status: Mapped[ListingStatus] = mapped_column(
         _pg_enum(ListingStatus, "listing_status"),
         nullable=False,
@@ -143,6 +186,7 @@ class AssetListing(Base):
         Index("idx_listings_seller", "seller_id"),
         Index("idx_listings_status", "status"),
         Index("idx_listings_promoted", "is_promoted", "promotion_expiry_date"),
+        Index("idx_listings_type_seller", "listing_type", "seller_id"),
         Index("uq_listings_seller_idempotency", "seller_id", "idempotency_key", unique=True),
     )
 
@@ -197,6 +241,99 @@ class FractionalOwnershipRecord(Base):
     __table_args__ = (
         CheckConstraint("total_accumulated_grams >= 0", name="ck_ownership_non_negative"),
         Index("idx_ownership_investor", "investor_id", unique=True),
+    )
+
+
+class Notification(Base):
+    """In-app notification (the topbar bell). No e-mail or push (decision 2026-10-09)."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str] = mapped_column(String(1000), nullable=False)
+    # In-app path to open, e.g. "/app/portfolio"
+    link: Mapped[str | None] = mapped_column(String(200))
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created_at()
+
+    __table_args__ = (Index("idx_notifications_user_created", "user_id", "created_at"),)
+
+
+class PriceAlert(Base):
+    """Premium price alert: notify once when the karat price crosses the target."""
+
+    __tablename__ = "price_alerts"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    karat: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    direction: Mapped[AlertDirection] = mapped_column(
+        _pg_enum(AlertDirection, "alert_direction"), nullable=False
+    )
+    target_price_per_gram: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    status: Mapped[AlertStatus] = mapped_column(
+        _pg_enum(AlertStatus, "alert_status"),
+        nullable=False,
+        default=AlertStatus.active,
+        server_default=AlertStatus.active.value,
+    )
+    triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created_at()
+
+    __table_args__ = (
+        CheckConstraint("karat IN (18, 21, 22, 24)", name="ck_alerts_karat"),
+        CheckConstraint("target_price_per_gram > 0", name="ck_alerts_target_positive"),
+        Index("idx_alerts_user", "user_id"),
+        Index("idx_alerts_status", "status"),
+    )
+
+
+class PasswordResetRequest(Base):
+    """ "Forgot password": handled by an admin (no e-mail, decision 2026-10-09)."""
+
+    __tablename__ = "password_reset_requests"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
+    status: Mapped[ResetRequestStatus] = mapped_column(
+        _pg_enum(ResetRequestStatus, "reset_request_status"),
+        nullable=False,
+        default=ResetRequestStatus.pending,
+        server_default=ResetRequestStatus.pending.value,
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_at: Mapped[datetime] = _created_at()
+
+    __table_args__ = (Index("idx_reset_requests_status", "status", "created_at"),)
+
+
+class InterestSignup(Base):
+    """ "سجّل اهتمامك" for asset classes that are coming soon (real estate, oil)."""
+
+    __tablename__ = "interest_signups"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    asset_class: Mapped[str] = mapped_column(String(32), nullable=False)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = _created_at()
+
+    __table_args__ = (
+        CheckConstraint("asset_class IN ('real_estate', 'oil')", name="ck_interest_asset_class"),
+        Index("uq_interest_email_asset", "email", "asset_class", unique=True),
     )
 
 

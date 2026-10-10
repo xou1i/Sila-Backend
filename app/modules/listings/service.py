@@ -13,7 +13,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError, ErrorCode
 from app.core.money import karat_price
 from app.core.schemas import Page
-from app.models import AssetListing, ListingStatus, User
+from app.models import AssetListing, ListingStatus, ListingType, User
 from app.modules.listings.schemas import (
     ListingCreateIn,
     ListingOut,
@@ -25,6 +25,14 @@ from app.modules.market import service as market
 from app.modules.payments import service as payments
 
 _NOT_OWNER = "لا يمكنك تعديل عرض لا تملكه"
+# An investor's resale shows this instead of their name (Domain Model v4)
+RESALE_SELLER_LABEL = "مستثمر على صِلة"
+
+
+def seller_label(listing: AssetListing) -> str:
+    if listing.listing_type == ListingType.investor_resale:
+        return RESALE_SELLER_LABEL
+    return listing.seller.full_name
 
 
 def effective_promoted(listing: AssetListing, now: datetime) -> bool:
@@ -39,7 +47,8 @@ def to_out(listing: AssetListing, price_24k: Decimal | None, now: datetime) -> L
     return ListingOut(
         id=listing.id,
         seller_id=listing.seller_id,
-        seller_name=listing.seller.full_name,
+        seller_name=seller_label(listing),
+        listing_type=listing.listing_type,
         seller_kyc_verified=listing.seller.kyc_verified,
         karat=listing.karat,
         total_weight_grams=listing.total_weight_grams,

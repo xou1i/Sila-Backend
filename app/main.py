@@ -11,10 +11,14 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import get_settings
 from app.core.errors import install_error_handlers
 from app.jobs.scheduler import build_scheduler, refresh_prices_job
+from app.modules.admin.router import router as admin_router
 from app.modules.ai.router import router as ai_router
+from app.modules.alerts.router import router as alerts_router
 from app.modules.identity.router import router as identity_router
+from app.modules.interest.router import router as interest_router
 from app.modules.listings.router import router as listings_router
 from app.modules.market.router import router as market_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.orders.router import router as orders_router
 from app.modules.ownership.router import router as ownership_router
 from app.modules.subscription.router import router as subscription_router
@@ -86,6 +90,10 @@ def create_app() -> FastAPI:
         subscription_router,
         ownership_router,
         system_router,
+        notifications_router,
+        alerts_router,
+        interest_router,
+        admin_router,
     ):
         app.include_router(router)
     return app

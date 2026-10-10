@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.core.schemas import Grams
-from app.models import ListingStatus
+from app.models import ListingStatus, ListingType
 
 
 class ListingCreateIn(BaseModel):
@@ -25,7 +25,12 @@ class ListingStatusIn(BaseModel):
 class ListingOut(BaseModel):
     id: uuid.UUID
     seller_id: uuid.UUID
-    seller_name: str
+    seller_name: str = Field(
+        description="The seller's name; for an investor resale a neutral label, never the name"
+    )
+    listing_type: ListingType = Field(
+        description="seller_listing, or investor_resale (show 'إعادة بيع من مستثمر')"
+    )
     seller_kyc_verified: bool
     karat: int
     total_weight_grams: Decimal

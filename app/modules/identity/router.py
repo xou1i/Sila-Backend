@@ -8,9 +8,12 @@ from app.core.rate_limit import rate_limit
 from app.models import User, UserRole
 from app.modules.identity import service
 from app.modules.identity.schemas import (
+    ChangePasswordIn,
+    ForgotPasswordIn,
     KycOut,
     LoginIn,
     LoginOut,
+    MessageOut,
     RefreshIn,
     SignupIn,
     TokenOut,
@@ -31,6 +34,33 @@ _KYC_DONE = "تم التوثيق عبر توقيعك بنجاح"
 )
 def signup(body: SignupIn, db: Session = Depends(get_db)) -> UserOut:
     return service.user_out(service.signup(db, body))
+
+
+@router.post(
+    "/api/auth/forgot-password",
+    response_model=MessageOut,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses=error_responses(422, 429),
+    dependencies=[rate_limit("login")],
+    summary="Ask the admins for a temporary password (same reply whether the e-mail exists)",
+)
+def forgot_password(body: ForgotPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
+    return MessageOut(message=service.forgot_password(db, body.email))
+
+
+@router.post(
+    "/api/users/me/password",
+    response_model=LoginOut,
+    responses=error_responses(401, 422, 429),
+    dependencies=[rate_limit("login")],
+    summary="Change my password; returns fresh tokens (older sessions stop working)",
+)
+def change_password(
+    body: ChangePasswordIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> LoginOut:
+    return service.change_password(db, user, body.current_password, body.new_password)
 
 
 @router.post(

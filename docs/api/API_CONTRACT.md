@@ -49,6 +49,8 @@ Branch on `error_code`, and show `message` (Arabic) to the user.
 | `RATE_LIMITED` | 429 | Too many attempts; wait `Retry-After` seconds |
 | `AI_UNAVAILABLE` | 503 | Show "الخدمة غير متاحة مؤقتاً" and link to manual browsing |
 | `PRICE_UNAVAILABLE` | 503 | No market price yet (first boot with no network) |
+| `ACCOUNT_DISABLED` | 403 | The account was deactivated by an admin (login only, after a correct password) |
+| `INSUFFICIENT_HOLDINGS` | 409 | Resale: more grams than you can still offer of that karat; the message says how many |
 | `INTERNAL_ERROR` | 500 | Generic error; no details are ever leaked |
 
 Rate limits (per IP): login 5/min, KYC 5/min, AI 20/min.
@@ -79,7 +81,9 @@ Legend: 🌐 public · 👤 any logged-in user · 💰 investor · 🏪 seller.
 | 🌐 | `POST /api/auth/signup` | `{role, full_name, email, password (8–72), risk_profile?}` | `201 UserOut` |
 | 🌐 | `POST /api/auth/login` | `{email, password}` | `200 LoginOut` |
 | 🌐 | `POST /api/auth/refresh` | `{refresh_token}` | `200 TokenOut` |
-| 👤 | `GET /api/users/me` | — | `200 UserOut` |
+| 👤 | `GET /api/users/me` | — | `200 UserOut` (has `must_change_password`) |
+| 👤 | `POST /api/users/me/password` | `{current_password, new_password}` | `200 LoginOut` with fresh tokens: every older session stops working |
+| 🌐 | `POST /api/auth/forgot-password` | `{email}` | `202 {message}`, the same reply whether the e-mail exists or not. The request goes to the admins (no e-mail is sent) |
 | 💰 | `POST /api/kyc/verify` | — | `200 {kyc_verified: true, message, user}` |
 | 🏪 | `POST /api/kyc/seller` | — | same |
 
@@ -156,7 +160,7 @@ A free question in Arabic ("عندي مليونين، شنو أحسن شي أش�
 |---|---|---|
 | 💰 | `POST /api/transactions/preview` | `{asset_id, purchased_weight_grams}` → breakdown + `quote_token` + `risk_insight`. Read-only; no KYC needed. |
 | 💰 | `POST /api/transactions/confirm` | `{asset_id, purchased_weight_grams, quote_token}` + header `Idempotency-Key`. `201` new, `200` replay. |
-| 👤 | `GET /api/transactions` | Investor: my purchases. Seller: sales on my listings (`buyer_ref` pseudonym, no buyer identity). |
+| 👤 | `GET /api/transactions` | Investor: my purchases **and** my resale sales. Seller: sales on my listings. Each item has `side: buy|sell`; sales carry `buyer_ref` (pseudonym, no buyer identity). |
 | 👤 | `GET /api/transactions/{id}` | Parties only (others get 404) |
 
 ### Subscription (💰)
@@ -173,6 +177,51 @@ A free question in Arabic ("عندي مليونين، شنو أحسن شي أش�
   "disclaimer": "التوقيع الرقمي إثبات تقني داخلي لسلامة رصيدك داخل منصة صِلة، وليس سند ملكية قانونياً معترفاً به رسمياً." }
 ```
 A new investor gets `"0.000"` with `message: "ابدأ أول استثمار"`. **Always show `disclaimer`** near the balance (the legal flag in System Design §6). The signature is an internal integrity proof, not legal ownership.
+
+`by_karat`: `[{karat, owned_grams, reserved_grams, available_to_resell_grams}]` (derived from the transaction log, sums to the total; reserved = in open resale listings, still owned until sold).
+
+#### Investor resale (💰, Workflow 09)
+The investor offers part of their holdings on the market; صِلة stays a broker. Their role stays `investor`.
+| Method & path | Notes |
+|---|---|
+| `POST /api/ownership/resale` | `{karat, weight_grams}` + optional `Idempotency-Key`. KYC required. `201 ListingOut` (`200` replay). Price is set by the server. `409 INSUFFICIENT_HOLDINGS` above `available_to_resell_grams`. |
+| `GET /api/ownership/resale` | My resale listings, open first. |
+| `PATCH /api/ownership/resale/{id}` | `{status: active|suspended|withdrawn}`. Suspended keeps the grams reserved; `withdrawn` is final and releases the unsold grams. |
+
+On the market a resale is a normal listing with `listing_type: "investor_resale"` and `seller_name: "مستثمر على صِلة"` (never the investor's name): show "إعادة بيع من مستثمر". Buying it is the usual checkout and commission; the grams move between the two signed records in the same transaction. You cannot buy your own resale (`403`), and match/advisor never suggest it to you. Resale listings cannot be promoted.
+
+### Notifications (👤)
+| Method & path | Notes |
+|---|---|
+| `GET /api/notifications?limit=20` | `{items:[{id, kind, title, body, link, read, created_at}], unread_count}`. `link` is an in-app path. Kinds: `purchase_completed`, `listing_sold`, `resale_sold`, `price_alert`, `password_reset`, `listing_suspended`, `password_reset_request` (admins). Poll it (e.g. every 60 s). In-app only. |
+| `POST /api/notifications/read` | `{ids?}`; empty = mark all read. Returns the same shape. |
+
+### Price alerts (💰, Premium)
+| Method & path | Notes |
+|---|---|
+| `GET /api/alerts` | My alerts, newest first: `{id, karat, direction: above|below, target_price_per_gram, status: active|triggered|cancelled, triggered_at, created_at}` |
+| `POST /api/alerts` | `{karat, direction, target_price_per_gram}`. `403 SUBSCRIPTION_REQUIRED` without an active Premium. `422` if the target is already reached (above must be higher than the current price, below lower). Max 10 active. |
+| `PATCH /api/alerts/{id}` | `{status: "cancelled"}` |
+
+Alerts are checked after every price refresh (~60 s); a crossed alert becomes `triggered` once and sends a `price_alert` notification.
+
+### Coming soon (🌐)
+- `POST /api/interest` `{email, asset_class: real_estate|oil}` → `202 {message}`. Idempotent per e-mail and asset class. Rate-limited like login.
+
+### Administration (🛡️ admin only)
+Admins are created by a server command (`python -m app.scripts.create_admin <email>`), never through signup. Every route needs an active admin token; every write is audit-logged.
+| Method & path | Notes |
+|---|---|
+| `GET /api/admin/overview` | `{investors, sellers, inactive_accounts, premium_active, active_listings, active_resale_listings, transactions, volume_iqd, commission_iqd, pending_password_requests, interest:{real_estate, oil}}` |
+| `GET /api/admin/users?q=&role=&limit=&offset=` | Page of `{id, role, full_name, email, kyc_verified, is_active, is_premium_active, must_change_password, created_at}` |
+| `PATCH /api/admin/users/{id}` | `{is_active?, kyc_verified?}`. Deactivating ends the account's sessions and suspends its active listings. Admin accounts cannot be changed here. |
+| `POST /api/admin/users/{id}/reset-password` | `{user, temporary_password}`, shown once. Older sessions stop working; the user must choose a new password (`must_change_password`). Resolves that user's pending requests. |
+| `GET /api/admin/listings?status=&listing_type=` | Every listing, any status |
+| `PATCH /api/admin/listings/{id}` | `{status: active|suspended}` (moderation; notifies the owner) |
+| `GET /api/admin/password-requests?status=pending` | `[{id, email, user_id, user_name, status, created_at, resolved_at}]` |
+| `PATCH /api/admin/password-requests/{id}` | `{status: "dismissed"}` |
+| `GET /api/admin/audit?event_type=&limit=&offset=` | Page of `{id, event_type, actor_id, entity_type, entity_id, data, created_at}` |
+| `GET /api/admin/interest` | Waitlist signups |
 
 ### System (🌐)
 - `GET /api/health` → `{status: ok|degraded, database, price_cache_age_seconds, price_source, price_is_stale, time}`

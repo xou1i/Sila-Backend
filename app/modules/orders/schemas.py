@@ -49,6 +49,9 @@ class TransactionOut(BaseModel):
     id: uuid.UUID
     asset_id: uuid.UUID
     karat: int
+    side: Literal["buy", "sell"] = Field(
+        description="buy: I bought. sell: sold from my listing (seller) or my resale (investor)"
+    )
     seller_name: str
     buyer_ref: str | None = Field(description="Anonymized buyer (seller view only)")
     purchased_weight_grams: Decimal

@@ -38,6 +38,9 @@ class ErrorCode(StrEnum):
     AI_UNAVAILABLE = "AI_UNAVAILABLE"
     PRICE_UNAVAILABLE = "PRICE_UNAVAILABLE"
     INTERNAL_ERROR = "INTERNAL_ERROR"
+    # Integrated platform (2026-10-10)
+    ACCOUNT_DISABLED = "ACCOUNT_DISABLED"
+    INSUFFICIENT_HOLDINGS = "INSUFFICIENT_HOLDINGS"
 
 
 _DEFAULTS: dict[ErrorCode, tuple[int, str]] = {
@@ -60,6 +63,8 @@ _DEFAULTS: dict[ErrorCode, tuple[int, str]] = {
     ErrorCode.AI_UNAVAILABLE: (503, "الخدمة غير متاحة مؤقتاً، جرّب التصفح اليدوي"),
     ErrorCode.PRICE_UNAVAILABLE: (503, "أسعار السوق غير متاحة حالياً"),
     ErrorCode.INTERNAL_ERROR: (500, "حدث خطأ غير متوقع"),
+    ErrorCode.ACCOUNT_DISABLED: (403, "هذا الحساب موقوف، تواصل مع إدارة صِلة"),
+    ErrorCode.INSUFFICIENT_HOLDINGS: (409, "الكمية أكبر من رصيدك المتاح للبيع من هذا العيار"),
 }
 
 

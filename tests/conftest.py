@@ -183,3 +183,26 @@ async def buy(
 
 def hours_ago(h: float) -> datetime:
     return datetime.now(UTC) - timedelta(hours=h)
+
+
+async def make_admin(client: httpx2.AsyncClient) -> Actor:
+    """Admins are created by the server command only: insert one directly, then sign in."""
+    from app.core.security import hash_password
+    from app.models import User, UserRole
+
+    n = next(_counter)
+    email = f"admin{n}@test.iq"
+    with SessionLocal() as session:
+        session.add(
+            User(
+                role=UserRole.admin,
+                full_name=f"admin {n}",
+                email=email,
+                password_hash=hash_password(PASSWORD),
+                kyc_verified=True,
+            )
+        )
+        session.commit()
+    r = await client.post("/api/auth/login", json={"email": email, "password": PASSWORD})
+    assert r.status_code == 200, r.text
+    return Actor(r.json()["user"], r.json()["access_token"])
